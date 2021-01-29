@@ -84,7 +84,7 @@ public class SimilarityODMap extends PApplet implements MouseWheelListener{
 	static String DATAFILE_DEMOGRAPHICS_PATH;
 	static String DATAFILE_RESULTS_PATH;
 	static String DATAFILE_FORCE_PATH;
-	static String APP_NAME="SimilarityODMap, v1.2";
+	static String APP_NAME="SimilarityODMap, v1.3 (22/01/2021)";
 	
 	static final boolean LOAD_DEMOGRAPHICS=true; //always true
 	static boolean LOAD_OUTPUTS=true;
