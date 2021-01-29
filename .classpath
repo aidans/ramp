@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="/giCentreUtils/bin" sourcepath="/giCentreUtils/src"/>
+	<classpathentry kind="lib" path="/Users/aidans/Documents/java_libraries/processing_1_5/core.jar"/>
+	<classpathentry kind="lib" path="/Users/aidans/Documents/java_libraries/netCDF/netcdfAll-5.3.3.jar"/>
+	<classpathentry kind="lib" path="/shapefiles/bin"/>
+	<classpathentry kind="lib" path="/Users/aidans/Documents/java_libraries/slf4j/slf4j-simple-1.7.5.jar"/>
+	<classpathentry kind="lib" path="/Users/aidans/Documents/java_libraries/commons-math3-3.6.1/commons-math3-3.6.1.jar"/>
+	<classpathentry kind="lib" path="/slippy_map/bin"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
