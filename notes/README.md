@@ -6,12 +6,12 @@ Richard sent a suitable Kullback–Leibler Divergence formula. I implemented it 
 
 Not send the modified app yet, but emailed: 
 
---
-![sd](./Screenshot2021-01-24at19.28.27.png =100x) | sdssd
---
-
-
-> A screenshot attached. An obvious thing to note is that the darker the colour, the less similar (opposite to the correlation ones). Also worth pointing out that with few data point (the ones in the sea) are dark - I need to exclude or fade these out somehow. 
+<table>
+<tr><td><img src="Screenshot 2021-01-24 at 19.28.27.png" width="200"/></td>
+<td>"A screenshot attached. An obvious thing to note is that the darker the colour, the less similar (opposite to the correlation ones). Also worth pointing out that with few data point (the ones in the sea) are dark - I need to exclude or fade these out somehow. ""
+</td>
+<tr>
+<table>
 
 ## 22th January 2021 
 
