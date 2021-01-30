@@ -42,11 +42,11 @@ We also adapted the code to distance-weight the counts in other categories, cont
 </tr>
 <tr>
 <td><img src="Screenshot 2021-01-30 at 11.53.13.png" width="250"/></td>
-<td>How "representative" (approximately) Glasgows's population is to everywhere else.</td>
+<td>How "representative" (approximately) Glasgows's population is to everywhere else. TODO: Richard to check</td>
 </tr>
 <tr>
 <td><img src="Screenshot 2021-01-30 at 11.53.30.png" width="250"/></td>
-<td>How "representative" somewhere in Aberdeenshire is to everywhere else. High values in the Central Belt because it contains a subset of their population</td>
+<td>How "representative" somewhere in Aberdeenshire is to everywhere else. High values in the Central Belt because it contains a subset of their population. TODO: Richard to check</td>
 </tr>
 </table>
 
@@ -55,7 +55,11 @@ See new release [SimilarityODMap-v1.3](https://github.com/aidans/ramp/releases/t
 Eventually, we hope you use this for comparing population outcome by demographic group by model outputs.
 
 ### Actions:
-- Richard: use [SimilarityODMap-v1.3](https://github.com/aidans/ramp/releases/tag/SimilarityODMap-v1.3) to explore the demographic data and think about similarity measures.
+ - [ ] Richard: check my screenshot captions above
+ - [ ] Richard and Claire: use [SimilarityODMap-v1.3](https://github.com/aidans/ramp/releases/tag/SimilarityODMap-v1.3) to explore the demographic data and think about similarity measures.
+ - [ ] Richard and Claire: Any other statistics that we should try?
+
+
 
 
 ## 24th January 2021 
@@ -72,93 +76,97 @@ Not send the modified app yet, but emailed:
 </tr>
 </table>
 
+### Actions:
+ - [ ] Richard and Claire: your views are welcome
+
+
 
 ## 22th January 2021 
 
-Presented prototype RAMP_SimilarityODMap-v1.2 
+Did a screenshare demo of [RAMP_SimilarityODMap-v1.2](https://www.dropbox.com/s/iqv4cdzbr1kfii8/RAMP_SimilarityODMap-v1.2.zip?dl=0)
 
 Positive feedback. 
 
 Aidan: not sure if correlation is the right measure (one would expect pretty much everywhere to be correlated. Richard: correlation works well. But should also try the other diversity measure Kullback–Leibler divergence. 
 
-Need to have indication of number of data points. 
+All: Would be useful to have indication of number of data points. 
 
-Aidan: Would also like to apply to biodiversity measures with Claire/Richard’s help 
+Aidan: Would also like to apply to biodiversity measures with Claire/Richard’s help (additional work outside RAMP)
 
-Richard/Claire to have a play about with the prototype. 
+
+<table>
+
+<tr>
+<td><img src="Picture 0.png" width="250"/></td>
+<td>Proportion of population in the different age groups 
+</td>
+</tr>
+
+<tr>
+<td><img src="Picture 1.png" width="250"/></td>
+<td>Difference in proportion of population in the different age groups compared to mouseovered cell (outlined in red and shown on map in bottom right). 
+</td>
+</tr>
+
+<tr>
+<td><img src="Picture 2.png" width="250"/></td>
+<td>Population correction compared to mouseovered cell (outlined in red and shown on map in bottom right).
+</td>
+</tr>
+
+<tr>
+<td><img src="Picture 3.png" width="250"/></td>
+<td>OD map of population correlation 
+</td>
+</tr>
+
+<tr>
+<td><img src="Picture 4.png" width="250"/></td>
+<td>OD map of population correlation with different zoom level for Ds (compared to Os). 
+</td>
+</tr>
+
+</table>
 
  
 
-Proportion of population in the different age groups 
 
+### Actions:
+ - [X] Richard and Claire: to have a play with the prototype and give further views
+ - [X] Richard: to send details of other similarity measures
  
 
  
 
-Difference in proportion of population in the different age groups compared to mouseovered cell (outlined in red and shown on map in bottom right). 
-
- 
-
- 
-
-Population correction compared to mouseovered cell (outlined in red and shown on map in bottom right). 
-
- 
-
- 
-
-OD map of population correlation 
-
- 
-
-OD map of population correlation with different zoom level for Ds. 
-
- 
-
- 
-
-15th January 2021 
+## 15th January 2021 
 
 Kick-off for RAMP visualisation work (officially from February) 
 
 Aidan: Types of work we could work on for this project 
 
-Explore inputs - OD map 
+ - Explore inputs - OD map 
+   - Movement data 
+   - Local movement 
+   - Diversity 
 
-- Movement data 
+ - Explore how model works 
+   - spread by movement 
+   - spread by distance 
 
-- Local movement 
-
-- Diversity 
-
-Explore how model works 
-
-spread by movement 
-
-spread by distance 
-
-Comparison of model outputs 
-
-keeping certain agegroups inside 
-
-pollution 
-
-areas that respond in the same ways 
-
-Comparisons on the same way 
+ - Comparison of model outputs 
+   - lockdown scenarios (e.g. keeping certain age groups inside )
+   - environment scenarios (e.g. pollution)
+   - areas that respond in the same ways 
 
 Richard: Similarity of populations 
 
-Richard: Use correlation coefficients. Aidan: try different measure of similarity 
+Aidan: Proposed "OD maps" for flows and any other spatial interaction measure, e.g. similarity 
 
-Aidan: OD maps for flows, would work with any spatial interaction measure, e.g. similarity 
+Richard: Suggested using correlation coefficients at first. Also suggested experimenting with different extents of origin and destination of OD maps (e.g. similarity for zoomed-in area to whole of Scotland).
 
-Richard: experiment with different extents of origin and destination – e.g. similarity in zoom-in areas to whole of Scotland.  
-
-Aidan: Plan 
-
-Implement OD maps to show similarity (using correlation) and with the possibility of different zoom for origins and destinations. 
-
+### Actions:
+ - [X] Implement OD maps to show similarity (using correlation) and with the possibility of different zoom for origins and destinations. 
+ - [X] Richard: to send details of other similarity measures
  
 
  
