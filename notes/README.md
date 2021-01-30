@@ -87,7 +87,7 @@ Did a screenshare demo of [RAMP_SimilarityODMap-v1.2](https://www.dropbox.com/s/
 
 Positive feedback. 
 
-Aidan: not sure if correlation is the right measure (one would expect pretty much everywhere to be correlated. Richard: correlation works well. But should also try the other diversity measure Kullback–Leibler divergence. 
+Aidan: not sure if correlation is the right measure (one would expect pretty much everywhere to be correlated. Richard: correlation works well. But should also try the other diversity measures including [Kullback–Leibler divergence](https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence). 
 
 All: Would be useful to have indication of number of data points. 
 
