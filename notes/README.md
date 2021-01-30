@@ -1,5 +1,63 @@
 # Meeting notes 
 
+
+## 29th January 2021 
+
+Had a call with Richard where we experimented with variants of the Kullback–Leibler Divergence formula from [his paper](https://arxiv.org/abs/1404.6520).
+
+We also adapted the code to distance-weight the counts in other categories, controlled by the `p` parameter. Its an asymmetrical measure.
+
+```
+	public static double modifiedKLDivergence(double[] ns2, double[] ns1){
+		double klDiv = 0;
+		double p=0.001;
+
+		double ns1Sum=0,ns2Sum=0;
+		for (double n1:ns1)
+			ns1Sum+=n1;
+		for (double n2:ns2)
+			ns2Sum+=n2;
+		double nsSum=ns1Sum+ns2Sum; //sum of both ns1 ns2 
+
+		for (int i = 0; i<ns1.length; i++) {
+			double zns1=0,zns=0; 
+			for (int j = 0; j<ns1.length; j++) {
+				zns1+=Math.pow(p,Math.abs(i-j))*ns1[j];
+				zns+=Math.pow(p,Math.abs(i-j))*(ns1[j]+ns2[j]);
+			}
+			if (ns1[i]>0) {
+		        klDiv += (ns1[i]/ns1Sum) * Math.log( (zns1/nsSum) / (zns/(float)nsSum));
+//				klDiv += (ns1[i]/ns1Sum) * Math.log( (ns1[i]/ns1Sum) / ((ns1[i]/ns1Sum)+(ns2[i]/ns2Sum)));
+//				klDiv -= (ns1[i]/ns1Sum) * Math.log( (ns1[i]/ns1Sum) / ((ns1[i]+ns2[i])/(float)nsSum));
+			}
+		}
+		return Math.exp(klDiv);
+	}
+```
+
+<table>
+<tr>
+<td><img src="Screenshot 2021-01-30 at 11.51.43.png" width="250"/></td>
+<td>OD map of above measure</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-01-30 at 11.53.13.png" width="250"/></td>
+<td>How "representative" (approximately) Glasgows's population is to everywhere else.</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-01-30 at 11.53.30.png" width="250"/></td>
+<td>How "representative" somewhere in Aberdeenshire is to everywhere else. High values in the Central Belt because it contains a subset of their population</td>
+</tr>
+</table>
+
+See new release [SimilarityODMap-v1.3](https://github.com/aidans/ramp/releases/tag/SimilarityODMap-v1.3).
+
+Eventually, we hope you use this for comparing population outcome by demographic group by model outputs.
+
+### Actions:
+- Richard: use [SimilarityODMap-v1.3](https://github.com/aidans/ramp/releases/tag/SimilarityODMap-v1.3) to explore the demographic data and think about similarity measures.
+
+
 ## 24th January 2021 
 
 Richard sent a suitable Kullback–Leibler Divergence formula. I implemented it and sent a screenshot.  
@@ -7,11 +65,13 @@ Richard sent a suitable Kullback–Leibler Divergence formula. I implemented it 
 Not send the modified app yet, but emailed: 
 
 <table>
-<tr><td><img src="Screenshot 2021-01-24 at 19.28.27.png" width="200"/></td>
-<td>"A screenshot attached. An obvious thing to note is that the darker the colour, the less similar (opposite to the correlation ones). Also worth pointing out that with few data point (the ones in the sea) are dark - I need to exclude or fade these out somehow. ""
-</td>
 <tr>
-<table>
+<td><img src="Screenshot 2021-01-24 at 19.28.27.png" width="250"/></td>
+<td>"A screenshot attached. An obvious thing to note is that the darker the colour, the less similar (opposite to the correlation ones). Also worth pointing out that with few data point (the ones in the sea) are dark - I need to exclude or fade these out somehow. "
+</td>
+</tr>
+</table>
+
 
 ## 22th January 2021 
 
