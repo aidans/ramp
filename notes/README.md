@@ -7,7 +7,7 @@ Richard sent a suitable Kullback–Leibler Divergence formula. I implemented it 
 Not send the modified app yet, but emailed: 
 
 
-![sd](./Screenshot 2021-01-24 at 19.28.27.png)
+![sd](./Screenshot2021-01-24at19.28.27.png) | sdssd
 
 
 
