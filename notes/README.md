@@ -38,7 +38,7 @@ We also adapted the code to distance-weight the counts in other categories, cont
 <table>
 <tr>
 <td><img src="Screenshot 2021-01-30 at 11.51.43.png" width="250"/></td>
-<td>OD map of above measure
+<td>OD map of above measure<br/>
 	<i>Jason says ...</i> interesting to see similar looking maps in different places in an OD map - this is pretty rare - we aere usually looking for autocorrelation. But the islands, West and North have similar levels of simlarity and so the maps repeat. I guesss that here we see trends that are (presumably) to do with 'type of place' rather than location.
 	</td>
 </tr>
