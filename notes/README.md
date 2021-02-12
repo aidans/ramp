@@ -1,5 +1,21 @@
 # Meeting notes 
 
+## 12th February 2021 
+
+Aidan and Claire met to talk about next steps. Claire is currently merging the COVID model code back into the original ecological model. Aidan likes the potential that some of the work we do could also be used in an ecological/biodivesity context.
+
+It would be nice to write a paper about OD maps for assessing geographical similarity. Aidan's suggestions are:
+
+- a [Visualization in Environmental Sciences](https://www.dropbox.com/s/mbeq1qorwa37777/CfP_C%26G_VisualisationInEnvironmentalSciences.pdf?dl=0) Special Issue in Computers & Graphics. Deadline:  30th July
+- The [EnvirVis workshop](https://www.informatik.uni-leipzig.de/bsv/envirvis2021/). Deadline: 5th March
+
+We also agreed that we would turn our focus to work on *model output comparisons*. One of the model parameters is the relative contributions of *spatial spread vs commuting*. Claire said that it is really difficult to assess the differences with such a high-resolution spatial model. We agreed to start to do some model comparisons to *directly inform model development*.
+
+### Actions:
+ - [ ] Richard and Claire: play with [SimilarityODMap-v1.3](https://github.com/aidans/ramp/releases/tag/SimilarityODMap-v1.3) and maybe start to think about a paper output (see above suggestions)
+ - [ ] Claire to provide a couple of model outputs for comparison
+
+
 
 ## 29th January 2021 
 
