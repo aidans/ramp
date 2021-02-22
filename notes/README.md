@@ -8,11 +8,11 @@ I was able to get OD commuter data for whole UK - from which I extracted Scotlan
 <table width="100%">
 <tr>
 <td><img src="Screenshot 2021-02-22 at 12.17.29.png" width="250"/></td>
-<td>OD map of commuting (home-work)</td>
+<td>OD map of commuting (home-work), using a logarithmic colour scaling. Outline colour indicates total number of origin (home) flows.</td>
 </tr>
 <tr>
 <td><img src="Screenshot 2021-02-22 at 12.18.05.png" width="250"/></td>
-<td>DO map of commuting (work-home)</td>
+<td>DO map of commuting (work-home).  Outline colour indicates total number of destination (work) flows.</td>
 </tr>
 </table>
 
