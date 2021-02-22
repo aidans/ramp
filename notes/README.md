@@ -208,23 +208,23 @@ Richard: Suggested using correlation coefficients at first. Also suggested exper
 
 #### What are the major scientific questions to focus on, e.g., region-to-region comparison, real-world vaccine efficacy, intervention efficacy?
 
- - Specific: For a spatially-explicit model, support model development and help interpret the outputs
- - General: effective visualisation and interactions to support comparison of multivariate data in "continuous" space at multiple resolutions.
- - Approach: Gridmaps (multi-scale, continuous geography, multivariate), rapid prototyping and embedding within the modelling process.
+ - *Specific*: For a spatially-explicit model, support model development and help interpret the outputs
+ - *General*: effective visualisation and interactions to support comparison of multivariate data in "continuous" space at multiple resolutions.
+ - *Approach*: (a) Gridmaps (multi-scale, continuous geography, multivariate), (b) rapid prototyping and (c) embedding within the modelling process.
 
 #### what analytical algorithms may be needed, e.g., multi-time-series similarity metrics., time series search and matching, etc.?
 
  - fast and efficient data structures
  - spatial/temporal aggregation
- - similarity matrics
+ - similarity mrtrics
 
 #### how many algorithms to be studied in each category?
 
- - whatever works
+ - not fixed number - driven by analytical need
 
 #### how many visual representations for each scientific questions?
 
- - whatever works
+ - not fixed number - driven by analytical need
 
 #### how will these be translated to the deliverables?
 
