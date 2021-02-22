@@ -5,7 +5,7 @@
 
 I was able to get OD commuter data for whole UK - from which I extracted Scotland - from the "WF01BUK" table from http://wicid.ukdataservice.ac.uk/cider/wicid/downloads.php from the "2011 Census United Kingdom - Safeguarded section".
  
-<table>
+<table width="100%">
 <tr>
 <td><img src="Screenshot 2021-02-22 at 12.17.29.png" width="250"/></td>
 <td>OD map of commuting (home-work)</td>
