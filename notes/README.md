@@ -204,5 +204,30 @@ Richard: Suggested using correlation coefficients at first. Also suggested exper
  - [X] Implement OD maps to show similarity (using correlation) and with the possibility of different zoom for origins and destinations. 
  - [X] Richard: to send details of other similarity measures
  
+### Retrospectively answering Min's questions (for Analytical Support Teams):
+
+#### What are the major scientific questions to focus on, e.g., region-to-region comparison, real-world vaccine efficacy, intervention efficacy?
+
+ - Specific: For a spatially-explicit model, support model development and help interpret the outputs
+ - General: effective visualisation and interactions to support comparison of multivariate data in "continuous" space at multiple resolutions.
+ - Approach: Gridmaps (multi-scale, continuous geography, multivariate), rapid prototyping and embedding within the modelling process.
+
+#### what analytical algorithms may be needed, e.g., multi-time-series similarity metrics., time series search and matching, etc.?
+
+ - fast and efficient data structures
+ - spatial/temporal aggregation
+ - similarity matrics
+
+#### how many algorithms to be studied in each category?
+
+ - whatever works
+
+#### how many visual representations for each scientific questions?
+
+ - whatever works
+
+#### how will these be translated to the deliverables?
+
+ - document the co-evolution of the (a) visualisation design and (2) model development (and analytical questions that may arise)
 
  
