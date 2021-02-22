@@ -1,5 +1,23 @@
 # Meeting notes 
 
+
+## 22th February 2021 (update, not meeting)
+
+I was able to get OD commuter data for whole UK - from which I extracted Scotland - from the "WF01BUK" table from http://wicid.ukdataservice.ac.uk/cider/wicid/downloads.php from the "2011 Census United Kingdom - Safeguarded section".
+ 
+<table>
+<tr>
+<td><img src="Screenshot 2021-02-22 at 12.17.29.png" width="250"/></td>
+<td>OD map of commuting (home-work)</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-02-22 at 12.18.05.png" width="250"/></td>
+<td>DO map of commuting (work-home)</td>
+</tr>
+</table>
+
+
+
 ## 12th February 2021 
 
 Aidan and Claire met to talk about next steps. Claire is currently merging the COVID model code back into the original ecological model. Aidan likes the potential that some of the work we do could also be used in an ecological/biodivesity context.
