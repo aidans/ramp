@@ -1,7 +1,7 @@
 # Meeting notes 
 
 
-## 22th February 2021 (update, not meeting)
+## 22th February 2021 (non-meeting update)
 
 I was able to get OD commuter data for whole UK - from which I extracted Scotland - from the "WF01BUK" table from http://wicid.ukdataservice.ac.uk/cider/wicid/downloads.php from the "2011 Census United Kingdom - Safeguarded section".
  
