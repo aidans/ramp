@@ -1,5 +1,40 @@
 # Meeting notes 
 
+## 24th February 2021 (non-meeting update)
+
+On 19th Feb, Claire sent two results set - with and with commuting data. These are at `../data/2021-02-19_comparison.zip`. We want to do a comparison of these. (Note that these use fake commuting data: @Claire: see the entry below for where to get OD commuting data at OA level.
+
+As a precursor to proper comparison, [RAMP_DemographicGridmap-v1.4](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.4) loads a *result set* and a *baseline result set* and you can switch between them (currently with the 'b' key).
+
+<table width="100%">
+<tr>
+<td><img src="Screenshot 2021-02-24 at 12.23.43.png" width="250"/></td>
+<td>Results with commuting, over time</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-02-24 at 12.23.48.png" width="250"/></td>
+<td>Results without commuting data, over time</td>
+</tr>
+</table>
+
+
+There is an apparent *problem* in which the grid cells don't seem to match up with those from the demographics data. These are matched with the `/grid1km/1year/persons/Dimension_1_names` dataset in `demographics.h5` (in `../data/demographics.zip`) and the `/abundances/grid_id` dataset in the `h5` files in ``../data/2021-02-19_comparison.zip`. @Claire can you check?
+
+<table width="100%">
+<tr>
+<td><img src="Screenshot 2021-02-24 at 12.19.55.png" width="250"/></td>
+<td>The data don't get as far as the east coast, so don't match that from demographics.h5 Please check (details above!)</td>
+</tr>
+</table>
+
+
+
+### Actions
+
+ - [ ] See 12th Feb entry below for where to get real OD data (from the 2011 census)
+ - [ ] Claire, please check the location grid ids (see above)
+ - [ ] Claire/Richard, run [RAMP_DemographicGridmap-v1.4](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.4)
+
 
 ## 22th February 2021 (non-meeting update)
 
