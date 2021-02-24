@@ -1,4 +1,4 @@
-# Meeting notes 
+# Meeting (and non-meeting) notes 
 
 ## 24th February 2021 (non-meeting update)
 
