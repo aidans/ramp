@@ -34,7 +34,7 @@ There is an apparent *problem* in which the grid cells don't seem to match up wi
  - [ ] See 12th Feb entry below for where to get real OD data (from the 2011 census)
  - [ ] Claire, please check the location grid ids (see above)
  - [ ] Claire/Richard, run [RAMP_DemographicGridmap-v1.4](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.4)
-
+ - [ ] Aidan to do some thinking about comparison
 
 ## 22th February 2021 (non-meeting update)
 
