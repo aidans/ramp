@@ -1,2 +1,3 @@
-tilecache\
+tilecache/
 *.class
+*.h5

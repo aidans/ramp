@@ -30,6 +30,19 @@ import ucar.nc2.Variable;
 
 
 public class DemographicGridmap extends PApplet{
+
+	static String APP_NAME="DemographicGridmap, v1.4 (24/02/21)";
+
+	static String DATAFILE_DEMOGRAPHICS_PATH;
+	static String DATAFILE_RESULTS_PATH;
+	static String DATAFILE_BASELINE_RESULTS_PATH;
+	static String DATAFILE_FORCE_PATH;
+	
+	static final boolean LOAD_DEMOGRAPHICS=true; //always true
+	static boolean LOAD_OUTPUTS=true;
+	static boolean LOAD_BASELINE=false;
+	static boolean LOAD_FORCE=false;
+
 	
 	ArrayList<Record> records;
 	String[] demographicsAttribNames;
@@ -119,24 +132,31 @@ public class DemographicGridmap extends PApplet{
 	int currentDay=0;
 
 	
+	boolean useBaseline=false;
 	
 	private HelpScreen helpScreen;
-	static String DATAFILE_DEMOGRAPHICS_PATH;
-	static String DATAFILE_RESULTS_PATH;
-	static String DATAFILE_FORCE_PATH;
-	static String APP_NAME="DemographicGridmap, v1.3";
-	
-	static final boolean LOAD_DEMOGRAPHICS=true; //always true
-	static boolean LOAD_OUTPUTS=true;
-	static boolean LOAD_FORCE=true;
 		
 	static public void main(String[] args) {
-		System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "ERROR");
-		DATAFILE_DEMOGRAPHICS_PATH=args[0];
-		DATAFILE_RESULTS_PATH=args[1];
-		if (args.length>2 && args[2].equals("suppressAbuns"))
-			LOAD_OUTPUTS=false;
-		PApplet.main(new String[]{"org.gicentre.ramp.aidan.DemographicGridmap"});
+		LOAD_OUTPUTS=false;
+		for (String arg:args) {
+			String[] toks=arg.split("=");
+			if (toks[0].equalsIgnoreCase("demographics_file"))
+				DATAFILE_DEMOGRAPHICS_PATH=toks[1].replaceAll("\"", "");
+			if (toks[0].equalsIgnoreCase("results_file")) {
+				DATAFILE_RESULTS_PATH=toks[1].replaceAll("\"", "");
+				LOAD_OUTPUTS=true;
+			}
+			if (toks[0].equalsIgnoreCase("baseline_results_file")) {
+				DATAFILE_BASELINE_RESULTS_PATH=toks[1].replaceAll("\"", "");
+				LOAD_BASELINE=true;
+			}
+		}
+		if (LOAD_BASELINE && !LOAD_OUTPUTS) {
+			println("Need results_file and baseline_results_file");
+			System.exit(0);
+		}
+			
+		PApplet.main(new String[]{"org.gicentre.aidan.ramp.DemographicGridmap"});
 	}
 	
 	public void setup() {
@@ -172,7 +192,8 @@ public class DemographicGridmap extends PApplet{
 		helpScreen.putEntry("'[' and ']'","Change colour scaling");
 		helpScreen.putEntry("'s'","Reset colour scaling");
 		helpScreen.putEntry("'m/M'","Change display mode (forwards/backwards");
-		helpScreen.putEntry("'a'","Animate throught time");
+		helpScreen.putEntry("'b'","Switch between baseline and not baseline");
+		helpScreen.putEntry("'a'","Animate through time");
 		helpScreen.putEntry("'Click on legend'","Toggle individual status on/off");
 		helpScreen.addSpacer();		
 		helpScreen.putEntry("'h'", "Show/hide help");
@@ -183,7 +204,6 @@ public class DemographicGridmap extends PApplet{
 	}
 	
 	private void loadData() {
-		print("Loading data...");
 		long t=System.currentTimeMillis();
 		records=new ArrayList<DemographicGridmap.Record>();
 
@@ -214,9 +234,10 @@ public class DemographicGridmap extends PApplet{
 		
 		//get demographics
 		try{
+			print("Loading demographics...");
 			NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
-			for (Variable variable:netcdfFile.getVariables())
-			println(variable.getNameAndDimensions());
+//			for (Variable variable:netcdfFile.getVariables())
+//				println(variable.getNameAndDimensions());
 
 			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
 			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();
@@ -248,9 +269,9 @@ public class DemographicGridmap extends PApplet{
 					location2Records.put(locations[i],record);
 					records.add(record);
 				}
-
-				netcdfFile.close();
 			}
+			println("done.");
+			netcdfFile.close();
 		}
 		catch (IOException e) {
 			println(e);
@@ -258,26 +279,29 @@ public class DemographicGridmap extends PApplet{
 
 		//get results
 		NetcdfFile netcdfFile;
+		int numLocations=-1;
+		String[] locations=null;
 		try {
-			netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
-			String[] locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
-			numDays=(int)netcdfFile.findVariable("/abundances/times").read().getSize();
-			ArrayList<String> statuses=new ArrayList<String>();
-			for (String compartment:(String[])netcdfFile.findVariable("/abundances/compartment").read().copyToNDJavaArray()) {
-				String status=compartment.replaceAll("\\d*$", "");
-				if (!statuses.contains(status))
-					statuses.add(status);
-			}
-			this.statuses=new String[statuses.size()];
-			statuses.toArray(this.statuses);
-			this.statusShow=new boolean[statuses.size()];
-			Arrays.fill(statusShow, true);
-
-			int numStatuses=statuses.size();
-			int numDemographics=10;
-			int numLocations=locations.length;
-
 			if (LOAD_OUTPUTS){
+				print("Loading model results...");
+				netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
+				locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
+				numDays=(int)netcdfFile.findVariable("/abundances/times").read().getSize();
+				ArrayList<String> statuses=new ArrayList<String>();
+				for (String compartment:(String[])netcdfFile.findVariable("/abundances/compartment").read().copyToNDJavaArray()) {
+					String status=compartment.replaceAll("\\d*$", "");
+					if (!statuses.contains(status))
+						statuses.add(status);
+				}
+				this.statuses=new String[statuses.size()];
+				statuses.toArray(this.statuses);
+				this.statusShow=new boolean[statuses.size()];
+				Arrays.fill(statusShow, true);
+
+				int numStatuses=statuses.size();
+				int numDemographics=10;
+				numLocations=locations.length;
+
 				int[] size=new int[]{numDays,1,numStatuses*numDemographics};
 				Variable variable=netcdfFile.findVariable("/abundances/abuns");
 				for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
@@ -302,35 +326,89 @@ public class DemographicGridmap extends PApplet{
 						}
 					}
 				}
-			}
-
-			if (LOAD_FORCE){
-				int[] size=new int[]{numDays,1,2};
-				Variable variable=netcdfFile.findVariable("/abundances/abuns_virus");
-				for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-					Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
-					if (record!=null) {
-						int[] origin={0,locationIdx,0};
-						ArrayInt.D3 values=null;
-						try{
-							values=(ArrayInt.D3)variable.read(origin,size);
-						}
-						catch (InvalidRangeException e) {
-							println(e);
-						}
-						for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
-							if (record.resultForce==null)
-								record.resultForce=new short[numDays];
-							record.resultForce[dayIdx]=(short)values.get(dayIdx,0,0);
-							if (record.resultReservoir==null)
-								record.resultReservoir=new short[numDays];
-							record.resultReservoir[dayIdx]=(short)values.get(dayIdx,0,1);
+				if (LOAD_FORCE){
+					size=new int[]{numDays,1,2};
+					variable=netcdfFile.findVariable("/abundances/abuns_virus");
+					for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
+						Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
+						if (record!=null) {
+							int[] origin={0,locationIdx,0};
+							ArrayInt.D3 values=null;
+							try{
+								values=(ArrayInt.D3)variable.read(origin,size);
+							}
+							catch (InvalidRangeException e) {
+								println(e);
+							}
+							for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
+								if (record.resultForce==null)
+									record.resultForce=new short[numDays];
+								record.resultForce[dayIdx]=(short)values.get(dayIdx,0,0);
+								if (record.resultReservoir==null)
+									record.resultReservoir=new short[numDays];
+								record.resultReservoir[dayIdx]=(short)values.get(dayIdx,0,1);
+							}
 						}
 					}
 				}
+				println("done.");
+				netcdfFile.close();
+				
+				if (LOAD_BASELINE){
+					print("Loading baseline model results...");
+					netcdfFile = NetcdfFiles.open(DATAFILE_BASELINE_RESULTS_PATH);
+					variable=netcdfFile.findVariable("/abundances/abuns");
+					for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
+						Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
+						if (record!=null) {
+							int[] origin={0,locationIdx,0};
+							ArrayInt.D3 values=null;
+							try{
+								values=(ArrayInt.D3)variable.read(origin,size);
+							}
+							catch (InvalidRangeException e) {
+								println(e);
+							}
+							for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
+								for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) {
+									for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++) {
+										if (record.baselineCounts==null)
+											record.baselineCounts=new short[numDays][numDemographics][numStatuses];
+										record.baselineCounts[dayIdx][demographicIdx][statusIdx]=(short)values.get(dayIdx,0,statusIdx*numDemographics+demographicIdx);
+									}
+								}
+							}
+						}
+					}
+					if (LOAD_FORCE){
+						size=new int[]{numDays,1,2};
+						variable=netcdfFile.findVariable("/abundances/abuns_virus");
+						for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
+							Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
+							if (record!=null) {
+								int[] origin={0,locationIdx,0};
+								ArrayInt.D3 values=null;
+								try{
+									values=(ArrayInt.D3)variable.read(origin,size);
+								}
+								catch (InvalidRangeException e) {
+									println(e);
+								}
+								for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
+									if (record.baselineForce==null)
+										record.baselineForce=new short[numDays];
+									record.baselineForce[dayIdx]=(short)values.get(dayIdx,0,0);
+									if (record.baselineReservoir==null)
+										record.baselineReservoir=new short[numDays];
+									record.baselineReservoir[dayIdx]=(short)values.get(dayIdx,0,1);
+								}
+							}
+						}
+					}
+				}
+				println("done.");
+				netcdfFile.close();
 			}
-			
-			netcdfFile.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -339,7 +417,6 @@ public class DemographicGridmap extends PApplet{
 		
 		System.gc();
 	
-		println("done.");
 		long t1=System.currentTimeMillis();
 		println(records.size()+" records in "+(t1-t)/1000+" seconds");
 	}
@@ -387,6 +464,12 @@ public class DemographicGridmap extends PApplet{
 			reservoirAvgs=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays];
 
 		for (Record record:records) {
+			short[][][] resultCounts=null;
+			if (LOAD_BASELINE==true && useBaseline)
+				resultCounts=record.baselineCounts;
+			else
+				resultCounts=record.resultCounts;
+
 			float x=record.x*scale;
 			float y=bounds.y+bounds.height-record.y*scale;
 			PVector pt=zoomPanState.getCoordToDisp(x,y);
@@ -399,26 +482,26 @@ public class DemographicGridmap extends PApplet{
 					}
 				}
 				if (mode==Mode.ModelBars || mode==Mode.ModelSpine) {
-					if (record.resultCounts!=null) 
+					if (resultCounts!=null) 
 						for (int j=0;j<10;j++) 
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 								if (statusShow[statusIdx])
-									modelSums[xBin][yBin][j][statusIdx]+=record.resultCounts[currentDay][j][statusIdx];
+									modelSums[xBin][yBin][j][statusIdx]+=resultCounts[currentDay][j][statusIdx];
 						}
 				}
 				if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph) {
-					if (record.resultCounts!=null) 
+					if (resultCounts!=null) 
 						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)  
 							if (statusShow[statusIdx]) {
 								for (int day=0;day<numDays;day++) {
 									for (int j=0;j<10;j++) {
-										modelSumsTime[xBin][yBin][day][statusIdx]+=record.resultCounts[day][j][statusIdx];
+										modelSumsTime[xBin][yBin][day][statusIdx]+=resultCounts[day][j][statusIdx];
 									}
 								}
 							}
 				}
 				if (mode==Mode.ModelSpineQuintiles) {
-					if (record.resultCounts!=null) { 
+					if (resultCounts!=null) { 
 						ArrayList<ValuePair<Float, short[]>> al=modelSumsQuintilesList[xBin][yBin];
 						if (al==null){
 							al=new ArrayList<>();
@@ -429,7 +512,7 @@ public class DemographicGridmap extends PApplet{
 						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 							if (statusShow[statusIdx]) {
 								for (int j=0;j<10;j++)
-									vs[statusIdx]+=record.resultCounts[currentDay][j][statusIdx];
+									vs[statusIdx]+=resultCounts[currentDay][j][statusIdx];
 								sum+=vs[statusIdx];
 							}
 						}
@@ -439,7 +522,8 @@ public class DemographicGridmap extends PApplet{
 						}
 					}
 				}
-				if (mode==Mode.ForceColour || mode==Mode.ReservoirColour||mode==Mode.ForceBars || mode==Mode.ReservoirBars || mode==Mode.ForceTime || mode==Mode.ReservoirTime)					if (record.resultForce!=null)
+				if (mode==Mode.ForceColour || mode==Mode.ReservoirColour||mode==Mode.ForceBars || mode==Mode.ReservoirBars || mode==Mode.ForceTime || mode==Mode.ReservoirTime)
+					if (record.resultForce!=null)
 							forceReservoirCounts[xBin][yBin]++;
 					
 				if (mode==Mode.ForceColour || mode==Mode.ForceBars || mode==Mode.ForceTime)
@@ -861,6 +945,9 @@ public class DemographicGridmap extends PApplet{
 		if (key=='h') {
 			helpScreen.setIsActive(!helpScreen.getIsActive());
 		}
+		if (key=='b') {
+			useBaseline=!useBaseline;
+		}
 	
 	}
 	
@@ -892,8 +979,11 @@ public class DemographicGridmap extends PApplet{
 		short x,y;
 		short[] popCounts; //by demographicgroup
 		short[][][] resultCounts; //by time, demographicGroup, infectionType
+		short[][][] baselineCounts; //by time, demographicGroup, infectionType
 		short[] resultForce; //by time
 		short[] resultReservoir; //by time
+		short[] baselineForce; //by time
+		short[] baselineReservoir; //by time
 	}
 	
 }
