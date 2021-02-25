@@ -12,7 +12,7 @@ Claire noted that the grid square format has changed since the original `demogra
  - [ ] Claire to regenerate her model results with the first `demographics.h5` and see it they load OK.
  
 
-### Ideas: Commuting
+### Idea: Commuting
 
 Claire will eventually use real OD data, but will run some examples with limited flows to help work out what the model is doing. She will provide her ODs which could be incorporated
 
@@ -21,7 +21,7 @@ We also discussed the idea of doing comparisons between different degrees of inf
  - [ ] Claire to do this
 
 
-### Ideas: Different strains
+### Idea: Different strains
  
 Claire said they are thinking of modelling multiple strains of the virus - for future work.
 
@@ -37,7 +37,7 @@ Aidan reminded us that we would try and go for a paper in the July Special Issue
 
 On 19th Feb, Claire sent two results set - with and with commuting data. These are at `../data/2021-02-19_comparison.zip`. We want to do a comparison of these. (Note that these use fake commuting data: @Claire: see the entry below for where to get OD commuting data at OA level.
 
- - [ ] See 12th Feb entry below for where to get real OD data (from the 2011 census)
+ - [ ] Claire to see 12th Feb entry below for where to get real OD data (from the 2011 census)
 
 As a precursor to proper comparison, [RAMP_DemographicGridmap-v1.4](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.4) loads a *result set* and a *baseline result set* and you can switch between them (currently with the 'b' key).
 
