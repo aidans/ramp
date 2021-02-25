@@ -1,8 +1,43 @@
 # Meeting (and non-meeting) notes 
 
+## 25th February 2021 (meeting)
+
+Claire and Aidan met to discuss the comparisons and issue raised yesterday (the entry below).
+
+### Problem: Mismatched squares
+
+Claire noted that the grid square format has changed since the original `demographics.h5` (the one I'm using), a more recent one (that she's using) and an even more recent one that neither of us are using.
+
+ - [ ] Claire to check the format and geographical bounding box
+ - [ ] Claire to regenerate her model results with the first `demographics.h5` and see it they load OK.
+ 
+
+### Ideas: Commuting
+
+Claire will eventually use real OD data, but will run some examples with limited flows to help work out what the model is doing. She will provide her ODs which could be incorporated
+
+We also discussed the idea of doing comparisons between different degrees of influence of commuting on the spread the virus
+
+ - [ ] Claire to do this
+
+
+### Ideas: Different strains
+ 
+Claire said they are thinking of modelling multiple strains of the virus - for future work.
+
+
+### Paper idea: OD maps for similarity
+
+Aidan reminded us that we would try and go for a paper in the July Special Issue on potential for OD maps to help understand population similarity.
+
+
+
+
 ## 24th February 2021 (non-meeting update)
 
 On 19th Feb, Claire sent two results set - with and with commuting data. These are at `../data/2021-02-19_comparison.zip`. We want to do a comparison of these. (Note that these use fake commuting data: @Claire: see the entry below for where to get OD commuting data at OA level.
+
+ - [ ] See 12th Feb entry below for where to get real OD data (from the 2011 census)
 
 As a precursor to proper comparison, [RAMP_DemographicGridmap-v1.4](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.4) loads a *result set* and a *baseline result set* and you can switch between them (currently with the 'b' key).
 
@@ -20,6 +55,8 @@ As a precursor to proper comparison, [RAMP_DemographicGridmap-v1.4](https://gith
 
 There is an apparent *problem* in which the grid cells don't seem to match up with those from the demographics data. These are matched with the `/grid1km/1year/persons/Dimension_1_names` dataset in `demographics.h5` (in `../data/demographics.zip`) and the `/abundances/grid_id` dataset in the `h5` files in ``../data/2021-02-19_comparison.zip`. @Claire can you check?
 
+ - [ ] Claire, please check the location grid ids (see above)
+
 <table width="100%">
 <tr>
 <td><img src="Screenshot 2021-02-24 at 12.19.55.png" width="250"/></td>
@@ -28,11 +65,6 @@ There is an apparent *problem* in which the grid cells don't seem to match up wi
 </table>
 
 
-
-### Actions
-
- - [ ] See 12th Feb entry below for where to get real OD data (from the 2011 census)
- - [ ] Claire, please check the location grid ids (see above)
  - [ ] Claire/Richard, run [RAMP_DemographicGridmap-v1.4](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.4)
  - [ ] Aidan to do some thinking about comparison
 
