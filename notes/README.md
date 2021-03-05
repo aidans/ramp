@@ -1,5 +1,14 @@
 # Meeting (and non-meeting) notes 
 
+## 5th March 2021 (meeting)
+
+Claire, Richard and Aidan met to discuss to discuss any updates.
+
+No updates from last time. Actions still ongoing.
+
+We discussed a bit more about how some of these ideas can be applied to various ecology problems.
+
+
 ## 25th February 2021 (meeting)
 
 Claire and Aidan met to discuss the comparisons and issue raised yesterday (the entry below).
