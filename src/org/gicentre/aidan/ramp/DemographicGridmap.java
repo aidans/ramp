@@ -236,8 +236,8 @@ public class DemographicGridmap extends PApplet{
 		try{
 			print("Loading demographics...");
 			NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
-//			for (Variable variable:netcdfFile.getVariables())
-//				println(variable.getNameAndDimensions());
+			for (Variable variable:netcdfFile.getVariables())
+				println(variable.getNameAndDimensions());
 
 			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
 			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();

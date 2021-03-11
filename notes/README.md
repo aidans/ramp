@@ -1,5 +1,21 @@
 # Meeting (and non-meeting) notes 
 
+## 11th March 2021 (meeting)
+
+Claire, Richard and Aidan met to discuss to discuss any updates.
+
+No updates from Richard or Aidan.
+
+Claire investigated the problem with the mismatched cells and found that Aidan was using an old version and she was using a newer but not the newest version! The newest version is [here](https://data.scrc.uk/data_product/SCRC:human/demographics/population/scotland@1.0.2).
+
+[ ] Claire to send new model runs to Aidan
+[ ] Aidan to make this work with the new files
+[ ] Aidan to do some direct comparison visual encodings.
+
+Richard mentioned that Helen Brown (Edinburgh; statistics) is experimenting with grid maps, perhaps Aidan to talk to her?
+
+Richard also mentioned that we might need to move on this epidemiology paper if we're going for it.
+
 ## 5th March 2021 (meeting)
 
 Claire, Richard and Aidan met to discuss to discuss any updates.
