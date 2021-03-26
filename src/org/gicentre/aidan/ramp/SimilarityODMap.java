@@ -186,9 +186,12 @@ public class SimilarityODMap extends PApplet implements MouseWheelListener{
 		try{
 			NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
 
-			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
-			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();
-			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/persons/array").read().copyToNDJavaArray();
+//			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
+//			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();
+//			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/persons/array").read().copyToNDJavaArray();
+			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/Dimension_1_names").read().copyToNDJavaArray();
+			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/Dimension_2_names").read().copyToNDJavaArray();
+			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/array").read().copyToNDJavaArray();
 
 			minPopCounts=new float[demographicsAttribNames.length];
 			Arrays.fill(minPopCounts,Float.MAX_VALUE);

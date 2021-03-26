@@ -1,5 +1,16 @@
 # Meeting (and non-meeting) notes 
 
+## 26th March 2021 (meeting)
+
+### Premeeting
+
+Aidan wishes to:
+
+ - reiterate his desire for the visualisation to support the modelling process (not just outputs)
+ - possibility of making it a general tool (for Claire's model in general)
+ - update on plans for epi paper
+
+
 ## 11th March 2021 (meeting)
 
 Claire, Richard and Aidan met to discuss to discuss any updates.

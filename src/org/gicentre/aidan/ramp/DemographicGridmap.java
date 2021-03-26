@@ -239,9 +239,12 @@ public class DemographicGridmap extends PApplet{
 			for (Variable variable:netcdfFile.getVariables())
 				println(variable.getNameAndDimensions());
 
-			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
-			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();
-			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/persons/array").read().copyToNDJavaArray();
+//			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
+//			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();
+//			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/persons/array").read().copyToNDJavaArray();
+			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/Dimension_1_names").read().copyToNDJavaArray();
+			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/Dimension_2_names").read().copyToNDJavaArray();
+			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/array").read().copyToNDJavaArray();
 
 			minPopCounts=new float[demographicsAttribNames.length];
 			Arrays.fill(minPopCounts,Float.MAX_VALUE);
@@ -308,9 +311,13 @@ public class DemographicGridmap extends PApplet{
 					Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
 					if (record!=null) {
 						int[] origin={0,locationIdx,0};
-						ArrayInt.D3 values=null;
+//						ArrayInt.D3 values=null;
+//						try{
+//							values=(ArrayInt.D3)variable.read(origin,size);
+//						}
+						ArrayShort.D3 values=null;
 						try{
-							values=(ArrayInt.D3)variable.read(origin,size);
+							values=(ArrayShort.D3)variable.read(origin,size);
 						}
 						catch (InvalidRangeException e) {
 							println(e);
