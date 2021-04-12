@@ -8,15 +8,15 @@ However the disease is affecting populations outside the central belt (which we 
 
 <table width="100%">
 <tr>
-<td><img src="Screenshot 2021-04-12 at 13.19.23" width="250"/></td>
+<td><img src="Screenshot 2021-04-12 at 13.19.23.png" width="250"/></td>
 <td>Demographics</td>
 </tr>
 <tr>
-<td><img src="Screenshot 2021-04-12 at 13.19.54" width="250"/></td>
+<td><img src="Screenshot 2021-04-12 at 13.19.54.png" width="250"/></td>
 <td>Disease at day 40 is outside the Central Belt (unexpected)</td>
 </tr>
 <tr>
-<td><img src="Screenshot 2021-04-12 at 13.20.09" width="250"/></td>
+<td><img src="Screenshot 2021-04-12 at 13.20.09.png" width="250"/></td>
 <td>Disease at day 40 is outside the Central Belt (unexpected)</td>
 </tr>
 </table>
