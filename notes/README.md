@@ -1,5 +1,48 @@
 # Meeting (and non-meeting) notes 
 
+## 12th April 2021 (update)
+
+Aidan has adapted his code to work with the new formats.
+
+However the disease is affecting populations outside the central belt (which we were not expecting). Either a problem with the visualisation of the model output. Aidan thinks the visualisation is fine.
+
+<table width="100%">
+<tr>
+<td><img src="Screenshot 2021-04-12 at 13.19.23" width="250"/></td>
+<td>Demographics</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-04-12 at 13.19.54" width="250"/></td>
+<td>Disease at day 40 is outside the Central Belt (unexpected)</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-04-12 at 13.20.09" width="250"/></td>
+<td>Disease at day 40 is outside the Central Belt (unexpected)</td>
+</tr>
+</table>
+
+
+- [ ] Claire to check outputs
+
+## 9th April 2021 (meeting)
+
+### Aidan's progress updates
+
+ - Confirmed he'd received [updated files with the updated file format](https://github.com/aidans/ramp/blob/main/data/2021-04-09_data/Claire%20Harris%20-%20commuting_comparison.zip) (with OS grid refs) but hadn't had chance to adapt the code to  work with it]
+
+### Claire's progress reports
+
+ - No specific progress (mainly waiting on Aidan)
+
+### Discussion
+
+Aidan noted that the two model outputs (with and without commuting) weren't the best examples for comparison, because they were very different. Claire to think of more more  subtle examples. Would like to try pollutant levels.
+
+Claire has been refactoring her code so it works with other environmental models. Aidan wants to try and ensure that the visualisation will work with any model output and suggests that we all keep this in mind
+
+- [ ] Aidan to adapt code to work with new files
+- [ ] Claire to do some model runs that differ in more subtle ways
+
 ## 26th March 2021 (meeting)
 
 ### Premeeting
@@ -10,6 +53,9 @@ Aidan wishes to:
  - possibility of making it a general tool (for Claire's model in general)
  - update on plans for epi paper
 
+### More data
+
+Claire to provid new model output files reflecting the new demographics format (see below) that use OS gridrefs via dropbox
 
 ## 11th March 2021 (meeting)
 
