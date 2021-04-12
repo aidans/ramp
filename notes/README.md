@@ -1,10 +1,16 @@
 # Meeting (and non-meeting) notes 
 
+## 12th April 2021 (another update)
+
+The problem seems to be caused by [some grid references](unmatched_locations_model.txt) in the model output file not being present in the demographics file.
+
+- [ ] Claire to check
+
 ## 12th April 2021 (update)
 
 Aidan has adapted his code to work with the new formats.
 
-However the disease is affecting populations outside the central belt (which we were not expecting). Either a problem with the visualisation of the model output. Since the demongraphics looks to be in the right place, and the model outputs are directly linked to these, Aidan thinks the visualisation is fine.
+However the disease is affecting populations outside the central belt (which we were not expecting). Either a problem with the visualisation of the model output. Since the demographics looks to be in the right place, and the model outputs are directly linked to these, Aidan thinks the visualisation is fine.
 
 <table width="100%">
 <tr>

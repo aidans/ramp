@@ -159,6 +159,10 @@ public class DemographicGridmap extends PApplet{
 	}
 	
 	public void setup() {
+		
+//		LOAD_OUTPUTS=false;
+//		LOAD_BASELINE=false;
+
 		println("Aidan Slingsby, a.slingsby@city.ac.uk, City, University of London");
 		size(700,700);
 		ctDemog=ColourTable.getPresetColourTable(ColourTable.PURPLES);
@@ -286,8 +290,12 @@ public class DemographicGridmap extends PApplet{
 			char[][] locations1=(char[][])netcdfFile.findVariable("/grid_area/age/persons/Dimension_1_names").read().copyToNDJavaArray();
 			//convert to string
 			String[] locations=new String[locations1.length];
-			for (int i=0;i<locations1.length;i++)
+			println("start locations");
+			for (int i=0;i<locations1.length;i++) {
 				locations[i]=new String(locations1[i]);
+				println(locations[i]);
+			}
+			println("end locations");
 			char[][] demographicsAttribNames1=(char[][])netcdfFile.findVariable("grid_area/age/persons/Dimension_2_names").read().copyToNDJavaArray();
 			//convert to string
 			demographicsAttribNames=new String[demographicsAttribNames1.length];
@@ -394,6 +402,9 @@ public class DemographicGridmap extends PApplet{
 								}
 							}
 						}
+					}
+					else {
+						println("couldn't find "+locations[locationIdx]);
 					}
 				}
 				if (LOAD_FORCE){
