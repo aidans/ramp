@@ -39,7 +39,7 @@ public class DemographicGridmap extends PApplet{
 	static String DATAFILE_FORCE_PATH;
 	
 	static final boolean LOAD_DEMOGRAPHICS=true; //always true
-	static boolean LOAD_OUTPUTS=true;
+	static boolean LOAD_OUTPUTS=false;
 	static boolean LOAD_BASELINE=false;
 	static boolean LOAD_FORCE=false;
 
@@ -62,8 +62,6 @@ public class DemographicGridmap extends PApplet{
 	int attribBinSize=15; //numbers of attributes
 	
 	Float colourScale=null;
-	
-	float scale,geoRatio;
 	
 	float[] minPopCounts,maxPopCounts;
 	
@@ -138,6 +136,7 @@ public class DemographicGridmap extends PApplet{
 		
 	static public void main(String[] args) {
 		LOAD_OUTPUTS=false;
+		LOAD_BASELINE=false;
 		for (String arg:args) {
 			String[] toks=arg.split("=");
 			if (toks[0].equalsIgnoreCase("demographics_file"))
@@ -175,10 +174,13 @@ public class DemographicGridmap extends PApplet{
 
 		moveToNextDisplayableMode();
 		
-		float ratioX=bounds.width/(float)geoBounds.getWidth();
-		float ratioY=bounds.height/(float)geoBounds.getHeight();
-		scale=min(ratioX,ratioY);
-		geoRatio=(float)(geoBounds.getHeight()/geoBounds.getWidth());
+				
+		double ratioX=bounds.width/geoBounds.getWidth();
+		double ratioY=bounds.height/geoBounds.getHeight();
+		if (ratioX<ratioY)
+			geoBounds.setFrame(geoBounds.getX(),geoBounds.getY(),bounds.width/ratioX,bounds.height/ratioX);
+		else
+			geoBounds.setFrame(geoBounds.getX(),geoBounds.getY(),bounds.width/ratioY,bounds.height/ratioY);
 
 		
 		helpScreen=new HelpScreen(this,createFont("Arial",12));
@@ -204,6 +206,48 @@ public class DemographicGridmap extends PApplet{
 	}
 	
 	private void loadData() {
+		
+		//load os tile lookups
+		
+		HashMap<String, String> tile2coordprefix=null;
+		try {
+			tile2coordprefix=new HashMap<String, String>();
+			BufferedReader br = new BufferedReader(new FileReader("data/tile_osgb.txt"));
+			while (br.ready()) {
+				String line=br.readLine();
+				if (!line.startsWith("#")) {
+					String tileId=line;
+					String coordPrefix=br.readLine();
+					tile2coordprefix.put(tileId, coordPrefix);
+				}
+			}
+			br.close();
+		}	
+		catch (IOException e){
+			e.printStackTrace();
+		}
+		
+		{		
+			try {
+				{
+				println("Demographics: "+DATAFILE_DEMOGRAPHICS_PATH);
+				NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
+				for (Variable variable:netcdfFile.getVariables())
+					println(variable.getNameAndDimensions());
+				}
+				println();
+				{
+					println("Model outputs: "+DATAFILE_RESULTS_PATH);
+					NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
+					for (Variable variable:netcdfFile.getVariables())
+						println(variable.getNameAndDimensions());
+				}
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		long t=System.currentTimeMillis();
 		records=new ArrayList<DemographicGridmap.Record>();
 
@@ -236,15 +280,20 @@ public class DemographicGridmap extends PApplet{
 		try{
 			print("Loading demographics...");
 			NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
-			for (Variable variable:netcdfFile.getVariables())
-				println(variable.getNameAndDimensions());
+//			for (Variable variable:netcdfFile.getVariables())
+//				println(variable.getNameAndDimensions());
 
-//			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_1_names").read().copyToNDJavaArray();
-//			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/persons/Dimension_2_names").read().copyToNDJavaArray();
-//			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/persons/array").read().copyToNDJavaArray();
-			String[] locations=(String[])netcdfFile.findVariable("/grid1km/1year/Dimension_1_names").read().copyToNDJavaArray();
-			demographicsAttribNames=(String[])netcdfFile.findVariable("/grid1km/1year/Dimension_2_names").read().copyToNDJavaArray();
-			double[][] values=(double[][])netcdfFile.findVariable("/grid1km/1year/array").read().copyToNDJavaArray();
+			char[][] locations1=(char[][])netcdfFile.findVariable("/grid_area/age/persons/Dimension_1_names").read().copyToNDJavaArray();
+			//convert to string
+			String[] locations=new String[locations1.length];
+			for (int i=0;i<locations1.length;i++)
+				locations[i]=new String(locations1[i]);
+			char[][] demographicsAttribNames1=(char[][])netcdfFile.findVariable("grid_area/age/persons/Dimension_2_names").read().copyToNDJavaArray();
+			//convert to string
+			demographicsAttribNames=new String[demographicsAttribNames1.length];
+			for (int i=0;i<demographicsAttribNames1.length;i++)
+				demographicsAttribNames[i]=new String(demographicsAttribNames1[i]);
+			double[][] values=(double[][])netcdfFile.findVariable("/grid_area/age/persons/array").read().copyToNDJavaArray();
 
 			minPopCounts=new float[demographicsAttribNames.length];
 			Arrays.fill(minPopCounts,Float.MAX_VALUE);
@@ -263,8 +312,16 @@ public class DemographicGridmap extends PApplet{
 						isEmpty=false;
 				}
 				if (!isEmpty) {
-					record.x=Short.parseShort(locations[i].split("-")[0]);
-					record.y=Short.parseShort(locations[i].split("-")[1]);
+					String gridRef=locations[i];
+					String easting=gridRef.substring(2,4);
+					String northing=gridRef.substring(4,6);
+					String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
+					easting=prefix.substring(0,1)+easting+"000";
+					northing=prefix.substring(1)+northing+"000";
+					println(gridRef+" "+easting+" "+northing);
+					
+					record.x=Integer.parseInt(easting);
+					record.y=Integer.parseInt(northing);
 					if (geoBounds==null)
 						geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
 					else
@@ -288,7 +345,13 @@ public class DemographicGridmap extends PApplet{
 			if (LOAD_OUTPUTS){
 				print("Loading model results...");
 				netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
+
+				for (Variable variable:netcdfFile.getVariables())
+					println(variable.getNameAndDimensions());
+
+				
 				locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
+				
 				numDays=(int)netcdfFile.findVariable("/abundances/times").read().getSize();
 				ArrayList<String> statuses=new ArrayList<String>();
 				for (String compartment:(String[])netcdfFile.findVariable("/abundances/compartment").read().copyToNDJavaArray()) {
@@ -306,18 +369,18 @@ public class DemographicGridmap extends PApplet{
 				numLocations=locations.length;
 
 				int[] size=new int[]{numDays,1,numStatuses*numDemographics};
-				Variable variable=netcdfFile.findVariable("/abundances/abuns");
+				Variable variable=netcdfFile.findVariable("abundances/abuns");
 				for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-					Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
+					Record record=location2Records.get(locations[locationIdx].replaceAll(" ", ""));
 					if (record!=null) {
 						int[] origin={0,locationIdx,0};
 //						ArrayInt.D3 values=null;
 //						try{
 //							values=(ArrayInt.D3)variable.read(origin,size);
 //						}
-						ArrayShort.D3 values=null;
+						ArrayInt.D3 values=null;
 						try{
-							values=(ArrayShort.D3)variable.read(origin,size);
+							values=(ArrayInt.D3)variable.read(origin,size);
 						}
 						catch (InvalidRangeException e) {
 							println(e);
@@ -366,7 +429,7 @@ public class DemographicGridmap extends PApplet{
 					netcdfFile = NetcdfFiles.open(DATAFILE_BASELINE_RESULTS_PATH);
 					variable=netcdfFile.findVariable("/abundances/abuns");
 					for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-						Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
+						Record record=location2Records.get(locations[locationIdx].replaceAll(" ", ""));
 						if (record!=null) {
 							int[] origin={0,locationIdx,0};
 							ArrayInt.D3 values=null;
@@ -477,8 +540,8 @@ public class DemographicGridmap extends PApplet{
 			else
 				resultCounts=record.resultCounts;
 
-			float x=record.x*scale;
-			float y=bounds.y+bounds.height-record.y*scale;
+			float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+			float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
 			PVector pt=zoomPanState.getCoordToDisp(x,y);
 			int xBin=(int)(pt.x/spatialBinSize);
 			int yBin=(int)(pt.y/spatialBinSize);
@@ -845,8 +908,9 @@ public class DemographicGridmap extends PApplet{
 		
 		//draw boundaries
 		PVector ptMouse=zoomPanState.getDispToCoord(new PVector(mouseX,mouseY));
-		int geoMouseX=(int)map(ptMouse.x,0,bounds.height/geoRatio,9013,470013);
-		int geoMouseY=(int)map(ptMouse.y,bounds.height,0,530301.5f,1217301.5f);
+		float geoMouseX=map(ptMouse.x,bounds.x,bounds.x+bounds.width,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX());
+		float geoMouseY=map(ptMouse.y,bounds.y,bounds.y+bounds.height,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY());
+		
 		stroke(150);
 		float[] coords=new float[6];
 		noFill();
@@ -866,8 +930,8 @@ public class DemographicGridmap extends PApplet{
 					endShape(CLOSE);
 					beginShape();
 				}
-				float x=map(coords[0],9013,470013,0,bounds.height/geoRatio);
-				float y=map(coords[1],530301.5f,1217301.5f,bounds.height,0);
+				float x=map(coords[0],(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+				float y=map(coords[1],(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
 				PVector pt=zoomPanState.getCoordToDisp(x,y);
 				vertex(pt.x,pt.y);
 				pi.next();
@@ -983,7 +1047,7 @@ public class DemographicGridmap extends PApplet{
 	}
 	
 	class Record{
-		short x,y;
+		int x,y;
 		short[] popCounts; //by demographicgroup
 		short[][][] resultCounts; //by time, demographicGroup, infectionType
 		short[][][] baselineCounts; //by time, demographicGroup, infectionType
