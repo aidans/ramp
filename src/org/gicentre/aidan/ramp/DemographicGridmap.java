@@ -321,6 +321,7 @@ public class DemographicGridmap extends PApplet{
 				}
 				if (!isEmpty) {
 					String gridRef=locations[i];
+					record.osRef=gridRef;
 					String easting=gridRef.substring(2,4);
 					String northing=gridRef.substring(4,6);
 					String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
@@ -404,7 +405,7 @@ public class DemographicGridmap extends PApplet{
 						}
 					}
 					else {
-						println("couldn't find "+locations[locationIdx]);
+//						println("couldn't find "+locations[locationIdx]);
 					}
 				}
 				if (LOAD_FORCE){
@@ -505,6 +506,8 @@ public class DemographicGridmap extends PApplet{
 	public void draw() {
 		background(200);
 		
+		String mouseOveredGridRef=null;
+		
 		if (mouseY>height-20)
 			currentDay=(int)map(mouseX,0,width,0,numDays);
 		
@@ -544,6 +547,9 @@ public class DemographicGridmap extends PApplet{
 		if (mode==Mode.ReservoirColour || mode==Mode.ReservoirBars || mode==Mode.ReservoirTime)
 			reservoirAvgs=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays];
 
+		int mouseXBin=(int)(mouseX/spatialBinSize);
+		int mouseYBin=(int)(mouseY/spatialBinSize);
+		
 		for (Record record:records) {
 			short[][][] resultCounts=null;
 			if (LOAD_BASELINE==true && useBaseline)
@@ -617,6 +623,8 @@ public class DemographicGridmap extends PApplet{
 						for (int day=0;day<numDays;day++)
 							reservoirAvgs[xBin][yBin][day]+=record.resultReservoir[day];
 			}
+			if (mouseXBin==xBin && mouseYBin==yBin)
+				mouseOveredGridRef=record.osRef;
 		}
 		if (mode==Mode.ModelGraph)
 			for (int xBin=0;xBin<modelSumsTime.length;xBin++)
@@ -930,7 +938,7 @@ public class DemographicGridmap extends PApplet{
 				fill(0,80);
 				textSize(20);
 				textAlign(LEFT,BOTTOM);
-				text(boundaryNames.get(entry.getKey()),0,height);
+				text(boundaryNames.get(entry.getKey())+"\n"+mouseOveredGridRef,0,height);
 				noFill();
 			}
 			PathIterator pi=entry.getValue().getPathIterator(null);
@@ -1066,6 +1074,7 @@ public class DemographicGridmap extends PApplet{
 		short[] resultReservoir; //by time
 		short[] baselineForce; //by time
 		short[] baselineReservoir; //by time
+		String osRef;
 	}
 	
 }
