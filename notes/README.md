@@ -1,5 +1,33 @@
 # Meeting (and non-meeting) notes 
 
+## 29th April 2021 (meeting)
+
+Claire has sent the updated model results (with pollution) and corrected locations. The pollution data are [here](https://data.scrc.uk/object/41176). Aidan hasn't had chance to look at these, but will soon.
+
+*Claire* has publicly released the model in Julia on GitHub and is working on a paper about it. It's currently the version that only works for plants, but the updates that make it work for COVID modelling will come in the next iteration.
+
+*Aidan* will be applying for a mini-project to try to get he gridding working in JavaScript so it can (hopefully) be embedded in the generic tool eventually.
+
+*Richard* reported that the Java API for the data pipeline was being worked on, but proving tricky. Aidan is using the native netCDR Java library and will send to Richard.
+
+
+- [X] Aidan to send NetCDF Java library details to Richard.
+
+## 16th April 2021 (meeting)
+
+### Progress updates
+
+Aidan hasn't been able to get to the bottom of the apparent mismatched grid squares. Has asked Claire to try and plot the data to check.
+
+Claire made some progress towards modelling with different levels of atmospheric pollution, but outputs aren't ready yet. These should be more subtle patterns that will needs good comparison visualisation.
+
+### Ideas
+
+ - Aidan: could try and calibrate the models on the data between old/new variants and the different types of lockdown.
+ 
+
+- [ ] Claire to check spatial references in model files
+
 ## 12th April 2021 (another update)
 
 The problem seems to be caused by [some grid references](unmatched_locations_model.txt) in the model output file not being present in the demographics file.
