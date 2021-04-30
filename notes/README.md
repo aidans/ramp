@@ -7,11 +7,11 @@ Claire's new model results (in the [`data2021-04-26_pollution`](https://github.c
 <table width="100%">
 <tr>
 <td><img src="Screenshot 2021-04-30 at 13.19.15.png" width="250"/></td>
-<td>Demographics</td>
+<td>Pollution run</td>
 </tr>
 <tr>
 <td><img src="Screenshot 2021-04-30 at 13.19.40.png" width="250"/></td>
-<td>Disease at day 40 is outside the Central Belt (unexpected)</td>
+<td>Pollution run</td>
 </tr>
 </table>
 
