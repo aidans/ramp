@@ -230,27 +230,27 @@ public class DemographicGridmap extends PApplet{
 		catch (IOException e){
 			e.printStackTrace();
 		}
-		
-		{		
-			try {
-				{
-				println("Demographics: "+DATAFILE_DEMOGRAPHICS_PATH);
-				NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
-				for (Variable variable:netcdfFile.getVariables())
-					println(variable.getNameAndDimensions());
-				}
-				println();
-				{
-					println("Model outputs: "+DATAFILE_RESULTS_PATH);
-					NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
-					for (Variable variable:netcdfFile.getVariables())
-						println(variable.getNameAndDimensions());
-				}
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+
+//		{		
+//			try {
+//				{
+//					println("Demographics: "+DATAFILE_DEMOGRAPHICS_PATH);
+//					NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
+//					for (Variable variable:netcdfFile.getVariables())
+//						println(variable.getNameAndDimensions());
+//				}
+//				println();
+//				{
+//					println("Model outputs: "+DATAFILE_RESULTS_PATH);
+//					NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
+//					for (Variable variable:netcdfFile.getVariables())
+//						println(variable.getNameAndDimensions());
+//				}
+//			}
+//			catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
 		
 		long t=System.currentTimeMillis();
 		records=new ArrayList<DemographicGridmap.Record>();
@@ -290,12 +290,12 @@ public class DemographicGridmap extends PApplet{
 			char[][] locations1=(char[][])netcdfFile.findVariable("/grid_area/age/persons/Dimension_1_names").read().copyToNDJavaArray();
 			//convert to string
 			String[] locations=new String[locations1.length];
-			println("start locations");
+//			println("start locations");
 			for (int i=0;i<locations1.length;i++) {
 				locations[i]=new String(locations1[i]);
-				println(locations[i]);
+//				println(locations[i]);
 			}
-			println("end locations");
+//			println("end locations");
 			char[][] demographicsAttribNames1=(char[][])netcdfFile.findVariable("grid_area/age/persons/Dimension_2_names").read().copyToNDJavaArray();
 			//convert to string
 			demographicsAttribNames=new String[demographicsAttribNames1.length];
@@ -327,7 +327,7 @@ public class DemographicGridmap extends PApplet{
 					String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
 					easting=prefix.substring(0,1)+easting+"000";
 					northing=prefix.substring(1)+northing+"000";
-					println(gridRef+" "+easting+" "+northing);
+//					println(gridRef+" "+easting+" "+northing);
 					
 					record.x=Integer.parseInt(easting);
 					record.y=Integer.parseInt(northing);
@@ -355,8 +355,8 @@ public class DemographicGridmap extends PApplet{
 				print("Loading model results...");
 				netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
 
-				for (Variable variable:netcdfFile.getVariables())
-					println(variable.getNameAndDimensions());
+//				for (Variable variable:netcdfFile.getVariables())
+//					println(variable.getNameAndDimensions());
 
 				
 				locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
