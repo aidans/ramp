@@ -2,7 +2,7 @@
 
 ## 30th April 2021 (update)
 
-Claire's new model results (in the [`data2021-04-26_pollution`](https://github.com/aidans/ramp/tree/main/data/2021-04-26_pollution) folder of this repo) looks like things are in the right place. Claire please check!
+Claire's new model results (in the [`data2021-04-26_pollution`](https://github.com/aidans/ramp/tree/main/data/2021-04-26_pollution) folder of this repo; pollution data from [here](https://data.scrc.uk/object/41176)) looks like things are in the right place. Claire please check!
 
 <table width="100%">
 <tr>
@@ -15,7 +15,7 @@ Claire's new model results (in the [`data2021-04-26_pollution`](https://github.c
 </tr>
 </table>
 
-Most recent version of the software is [here](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.5)
+Most recent version of the software is [here](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.5).
 
 Just need some more results now to work on comparisons.
 
