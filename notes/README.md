@@ -1,5 +1,31 @@
 # Meeting (and non-meeting) notes 
 
+
+## 7th May 2021 (meeting)
+
+Claire has provided two model run results for different pollution sensitivities (same PM10 pollution levels based on real data, but different effects on the respiratory system). Both these work in the [most recent version of the software](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.5) using command line `java -jar DemographicGridmap.jar demographics_file=data/2021-04-09_data/d298197ad0b8e2cc54836908da511de7fe1c9877.h5 results_file=data/2021-04-30_pollution/abundances_poll1.h5 baseline_results_file=data/2021-04-30_pollution/abundances_poll2.h5`, which currently just lets you switch between "baseline" and "results"
+
+As has been the intention for a long term, Aidan would like to do explicit direct visual encoding of comparisons.
+
+We also talked at a higher level of what we want to do. Richard said that the main question remains "are we doing better in one scenario or another?" and "how to make this apparent" where the complication is how we understand "better". Is it death rates overall or ensuring that no sociodemographic groups are more disadvantaged than others. He also talked about "multicriteria optimisation" being an open problem to which as far as he knows, there is no satisfactory solutions. He recognises the role of visualisation to help determine this.
+
+There's still a distinction between:
+
+ - studying model outputs
+ - studying different scenarios
+ 
+The modelling is still firmly in the first camp.
+
+We also talked about how this could apply to plant ecology models.
+
+### Next steps
+
+Next steps are to look at variability between stochastic modelling outputs. We also talked about potentially coarsening up the spatial model output to reduce data sizes. This will need the demographic data to also be coarsened to work with the visualisation as it currently stands.
+
+ - [ ] Claire to produce multiple model stochastic outputs (same input parameters)
+ - [ ] Aidan to design some specific comparison views.
+
+
 ## 30th April 2021 (update)
 
 Claire's new model results (in the [`data2021-04-26_pollution`](https://github.com/aidans/ramp/tree/main/data/2021-04-26_pollution) folder of this repo; pollution data from [here](https://data.scrc.uk/object/41176)) looks like things are in the right place. Claire please check!
