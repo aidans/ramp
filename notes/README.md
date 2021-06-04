@@ -20,6 +20,22 @@ Seems surprisingly hard to interpret! The temporal structure we saw above is vis
 To discuss in the meeting! Latest release [here](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.6).
 
 
+### Meeting
+
+Aidan showed the comparison view in the meeting. RR and CH found it "extremely useful", questioning the way the model is set up. TODO: Richard/Claire to expand on this.
+ 
+ - RR asked whether the difference between the models were "real" or due to stochastic differences. Good questions! CH to run some deterministic runs
+ - RR observed differences between urban pollution (Central Belt) and agricultural pollution (Aberdeenshire/Inverness) TODO: Richard/Claire to expand on this.
+
+TODO: Richard/Claire to write about reactions and observations here.
+
+### Next steps
+
+ - [ ] Claire to run deterministic versions - and then try them out with the [latest release](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.6)
+ - [ ] Aidan to do a comparison view by demographic for a single infection category.
+ - [ ] Aidan to do a temporal for a single infection category.
+ - [X] Aidan to fix a bug that prevents CH from running it.
+ - [ ] CH and RR to add their observations and reactions
 
 ## 7th May 2021 (meeting)
 
