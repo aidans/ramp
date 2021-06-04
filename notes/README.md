@@ -7,7 +7,7 @@
 
 I had agreed to do some difference-comparison views as currently you can only switch between views. This can be useful (see below).
 
-<img src="comparison_switching_.gif" width="250"/>
+<img src="comparison_switching.gif" width="250"/>
 
 However, directly-encoding difference will enable more nuanced comparions. But, it is difficult something based on the stacked bars, because some categories will increase and some will decrease, so it needs to be an unstacked version.
 
