@@ -17,7 +17,7 @@ Here's one that combines age groups:
 
 Seems surprisingly hard to interpret! The temporal structure we saw above is visible but not easy to see.
 
-To discuss in the meeting!
+To discuss in the meeting! Latest release [here](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.6).
 
 
 
