@@ -591,7 +591,7 @@ public class DemographicGridmap extends PApplet{
 						for (int j=0;j<10;j++) 
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 								if (statusShow[statusIdx])
-									modelSumsComparison[xBin][yBin][statusIdx]+=record.baselineCounts[currentDay][j][statusIdx]-record.resultCounts[currentDay][j][statusIdx];
+									modelSumsComparison[xBin][yBin][statusIdx]+=record.resultCounts[currentDay][j][statusIdx]-record.baselineCounts[currentDay][j][statusIdx];
 						}
 				}
 				if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph) {
@@ -1013,18 +1013,30 @@ public class DemographicGridmap extends PApplet{
 		if (mode==Mode.ModelBars) {
 			title="Population modelled status by age group (younger at top) for day "+currentDay;
 			if (LOAD_BASELINE && useBaseline)
-				title+="from baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
+				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
 		}
 		if (mode==Mode.ModelBarsComparison)
 			title="Comparison from baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+") for day "+currentDay;
-		if (mode==Mode.ModelGraph)
+		if (mode==Mode.ModelGraph) {
 			title="Population modelled status over time";
-		if (mode==Mode.ModelSpine)
+			if (LOAD_BASELINE && useBaseline)
+				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
+		}
+		if (mode==Mode.ModelSpine) {
 			title="Population modelled status proportion by age group (younger at top) for day "+currentDay;
-		if (mode==Mode.ModelSpineQuintiles)
+			if (LOAD_BASELINE && useBaseline)
+				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
+		}
+		if (mode==Mode.ModelSpineQuintiles) {
 			title="Quintiles (by proportion susceptable) of modelled status proportion for day "+currentDay;
-		if (mode==Mode.ModelSpineTime)
+			if (LOAD_BASELINE && useBaseline)
+				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
+		}
+		if (mode==Mode.ModelSpineTime) {
 			title="Population modelled status proportion over time (left to right)";
+			if (LOAD_BASELINE && useBaseline)
+				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
+		}
 		if (mode==Mode.ForceColour)
 			title="Force of infection for day "+currentDay;
 		if (mode==Mode.ReservoirColour)
