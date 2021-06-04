@@ -5,11 +5,19 @@
 
 ### Pre-meeting
 
-I had agreed to do some difference-comparison views as currently you can only switch between views. This can be useful (see below).
+I had agreed to do some difference-comparison views as currently you can only switch between views. This can be useful (see below - click to enlarge). This is between the most recent two pollution runs.
 
-<img src="comparison_switching.gif" width="250"/>
+<img src="comparison_switching.gif" width="400"/>
 
 However, directly-encoding difference will enable more nuanced comparions. But, it is difficult something based on the stacked bars, because some categories will increase and some will decrease, so it needs to be an unstacked version.
+
+Here's one that combines age groups:
+
+<img src="Jun-04-2021 13-44-12.gif" width="400"/>
+
+Seems surprisingly hard to interpret! The temporal structure we saw above is visible but not easy to see.
+
+To discuss in the meeting!
 
 
 
