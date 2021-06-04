@@ -1,6 +1,18 @@
 # Meeting (and non-meeting) notes 
 
 
+## 4th June 2021 (meeting)
+
+### Pre-meeting
+
+I had agreed to do some difference-comparison views as currently you can only switch between views. This can be useful (see below).
+
+<img src="comparison_switching_.gif" width="250"/>
+
+However, directly-encoding difference will enable more nuanced comparions. But, it is difficult something based on the stacked bars, because some categories will increase and some will decrease, so it needs to be an unstacked version.
+
+
+
 ## 7th May 2021 (meeting)
 
 Claire has provided two model run results for different pollution sensitivities (same PM10 pollution levels based on real data, but different effects on the respiratory system). Both these work in the [most recent version of the software](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.5) using command line `java -jar DemographicGridmap.jar demographics_file=data/2021-04-09_data/d298197ad0b8e2cc54836908da511de7fe1c9877.h5 results_file=data/2021-04-30_pollution/abundances_poll1.h5 baseline_results_file=data/2021-04-30_pollution/abundances_poll2.h5`, which currently just lets you switch between "baseline" and "results"
@@ -22,7 +34,7 @@ We also talked about how this could apply to plant ecology models.
 
 Next steps are to look at variability between stochastic modelling outputs. We also talked about potentially coarsening up the spatial model output to reduce data sizes. This will need the demographic data to also be coarsened to work with the visualisation as it currently stands.
 
- - [ ] Claire to produce multiple model stochastic outputs (same input parameters)
+ - [ ] Claire to produce multiple model stochastic outputs (same input parameters) (maybe 10 runs?)
  - [ ] Aidan to design some specific comparison views.
 
 

@@ -73,6 +73,7 @@ public class DemographicGridmap extends PApplet{
 		DemogColour,
 		DemogBars,
 		ModelBars,
+		ModelBarsComparison,
 		ModelSpine,
 		ModelSpineTime,
 		ModelGraph,
@@ -94,6 +95,8 @@ public class DemographicGridmap extends PApplet{
 				return LOAD_DEMOGRAPHICS;
 			case ModelBars:
 				return LOAD_OUTPUTS;
+			case ModelBarsComparison:
+				return LOAD_OUTPUTS && LOAD_BASELINE;
 			case ModelSpine:
 				return LOAD_OUTPUTS;
 			case ModelSpineTime:
@@ -520,9 +523,14 @@ public class DemographicGridmap extends PApplet{
 		int[][][] demogSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][demographicsAttribNames.length/attribBinSize];
 		
 		int[][][][] modelSums=null;
-		if (mode==Mode.ModelBars || mode==Mode.ModelSpine)
+		if (mode==Mode.ModelBars || mode==Mode.ModelSpine  || mode==Mode.ModelBarsComparison)
 			modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length];
 
+		int[][][][] modelSumsBaseline=null;
+		if (mode==Mode.ModelBars || mode==Mode.ModelBarsComparison)
+			modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length];
+
+		
 		int[][][][] modelSumsTime=null;
 		if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph)
 			modelSumsTime=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays][statuses.length];//no demographics
@@ -574,6 +582,14 @@ public class DemographicGridmap extends PApplet{
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 								if (statusShow[statusIdx])
 									modelSums[xBin][yBin][j][statusIdx]+=resultCounts[currentDay][j][statusIdx];
+						}
+				}
+				if (mode==Mode.ModelBarsComparison) {
+					if (resultCounts!=null) 
+						for (int j=0;j<10;j++) 
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+								if (statusShow[statusIdx])
+									modelSums[xBin][yBin][j][statusIdx]+=record.baselineCounts[currentDay][j][statusIdx]-record.resultCounts[currentDay][j][statusIdx];
 						}
 				}
 				if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph) {
@@ -705,6 +721,16 @@ public class DemographicGridmap extends PApplet{
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
 								if (statusShow[statusIdx])
 									sum+=modelSums[x][y][j][statusIdx];
+
+							colourScale=max(colourScale,sum);
+						}
+					}
+					else if (mode==Mode.ModelBarsComparison) {
+						for (int j=0;j<10;j++) {
+							float sum=0;
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
+								if (statusShow[statusIdx])
+									sum+=abs(modelSums[x][y][j][statusIdx]);
 
 							colourScale=max(colourScale,sum);
 						}
