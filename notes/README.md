@@ -49,15 +49,16 @@ Aidan tried it and provided some commentary prior to the meeting.
 </tr>
 </table>
 
+So, do we see the variation that we want to see?
 
+
+### Meeting
 
 
 
 ## 16th July 2021 (meeting)
 
-Meeting have been less frequent and progress has been slow.
-
-It 
+Meeting have been less frequent and progress has been slow. Can't remember when these observations/decisions made. Claire is still to get deterministic versions of the models working, so we can think about what kind of variation we want to see.
 
 ## 4th June 2021 (meeting)
 
