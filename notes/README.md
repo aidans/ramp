@@ -80,13 +80,13 @@ To discuss in the meeting! Latest release [here](https://github.com/aidans/ramp/
 
 ### Meeting
 
-AS showed the comparison view in the meeting. RR and CH found it "extremely useful", questioning the way the model is set up. TODO: Richard/Claire to expand on this.
+AS showed the comparison view in the meeting. RR and CH found it "extremely useful", questioning the way the model is set up. CH ran these pollution examples using the new model framework and the results weren't exactly as expected, i.e. seeing more recovereds in the run with a boosted death probability.
  
  - RR asked whether the difference between the models were "real" or due to stochastic differences. Good questions! CH to run some deterministic runs
- - RR observed differences between urban pollution (Central Belt) and agricultural pollution (Aberdeenshire/Inverness) TODO: Richard/Claire to expand on this.
-  - CH would like to be able to compare to the [pollution data](https://data.scrc.uk/object/41176)
+ - RR observed differences between urban pollution (Central Belt) and agricultural pollution (Aberdeenshire/Inverness). 
+ - CH would like to be able to compare to the [pollution data](https://data.scrc.uk/object/41176)
 
-TODO: Richard/Claire to write about reactions and observations here.
+CH: This was a useful exercise to sense check the latest version of the model. Once we can run the deterministic version of the model (still in progress), we should be able to see whether these differences are stochastic. If not, we might need to go back to the model to check that the dynamics are working as we would expect. 
 
 ### Next steps
 
@@ -95,7 +95,7 @@ TODO: Richard/Claire to write about reactions and observations here.
  - [ ] AS to do a temporal for a single infection category.
  - [ ] AS to add the [pollution data](https://data.scrc.uk/object/41176)
  - [X] AS to fix a bug that prevents CH from running it.
- - [ ] CH and RR to add their observations and reactions
+ - [X] CH and RR to add their observations and reactions
 
 ## 7th May 2021 (meeting)
 
