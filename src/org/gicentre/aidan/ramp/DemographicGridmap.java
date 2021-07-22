@@ -5,9 +5,11 @@ import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +40,7 @@ public class DemographicGridmap extends PApplet{
 	static String DATAFILE_RESULTS_PATH;
 	static String DATAFILE_BASELINE_RESULTS_PATH;
 	static String DATAFILE_FORCE_PATH;
+	static String DATAFILE_POLLUTION;
 	
 	static final boolean LOAD_DEMOGRAPHICS=true; //always true
 	static boolean LOAD_OUTPUTS=false;
@@ -84,7 +87,8 @@ public class DemographicGridmap extends PApplet{
 		ForceBars,
 		ReservoirBars,
 		ForceTime,
-		ReservoirTime;
+		ReservoirTime,
+		Pollution;
 		
 		boolean ableToDisplay() {
 			switch (this) {
@@ -505,6 +509,60 @@ public class DemographicGridmap extends PApplet{
 	
 		long t1=System.currentTimeMillis();
 		println(records.size()+" records in "+(t1-t)/1000+" seconds");
+
+	//output tsvs
+		if (LOAD_DEMOGRAPHICS) {
+			try {
+				BufferedWriter bw=new BufferedWriter(new PrintWriter("demographics.tsv"));
+				bw.write("x\ty");
+				for(String label:demographicsAttribNames)
+					bw.write("\t"+label);
+				bw.write("\n");
+				for (Record record:location2Records.values()) {
+					bw.write(record.x+"\t"+record.y);
+					for (short v:record.popCounts)
+						bw.write("\t"+v);
+					bw.write("\n");
+				}
+				bw.close();
+			}
+			catch (IOException e) {
+
+			}
+		}
+
+		// resultCounts; //by time, demographicGroup, infectionType
+		if (LOAD_OUTPUTS) {
+			try {
+				BufferedWriter bw=new BufferedWriter(new PrintWriter("outputs.tsv"));
+				bw.write("x\ty");
+				for(String label:demographicsAttribNames)
+					bw.write("\tpop_"+label.trim());
+				for(String status:statuses)
+					for(int demog=0;demog<10;demog++)
+						for(int day=0;day<numDays;day++) 
+							bw.write("\t"+"output_"+status.trim()+"_age"+demog*10+"-"+(demog*10+9)+"_t"+day);
+				
+				
+				bw.write("\n");
+				for (Record record:location2Records.values()) {
+					bw.write(record.x+"\t"+record.y);
+					for (short v:record.popCounts)
+						bw.write("\t"+v);
+					for(int statusIdx=0; statusIdx<statuses.length;statusIdx++)
+						for(int demog=0;demog<10;demog++)
+							for(int day=0;day<numDays;day++) 
+								if (record.resultCounts!=null)
+									bw.write("\t"+record.resultCounts[day][demog][statusIdx]);
+					bw.write("\n");
+				}
+				bw.close();
+			}
+			catch (IOException e) {
+
+			}
+			
+		}
 	}
 
 	public void draw() {

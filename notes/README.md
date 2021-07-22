@@ -1,6 +1,64 @@
 # Meeting (and non-meeting) notes 
 
 
+## 23nd July 2021 (meeting)
+
+### Pre-meeting
+
+Claire sent [new data](../data/2021-07-19_pollution.zip) with the random-seed problem solved, so that difference between the two runs are due to model differences.
+
+Aidan tried it and provided some commentary prior to the meeting.
+
+
+<table width="100%">
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.03.56.png" width="250"/></td>
+<td>In this model run, there are only low levels of virus...</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.06.22.png" width="250"/></td>
+<td>...so let's remove the "susceptible" category (by clicking on it). Then let's switch between the results (less death)...</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.08.42.png" width="250"/></td>
+<td>...and the baseline (more death) with the 'b' button. Note large areas have no cases - removing the "susceptible" category results in no data</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.25.33.png" width="250"/></td>
+<td>And also look at them on day 30 with the results (less death)...</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.25.52.png" width="250"/></td>
+<td>...and the baseline (more death) with the 'b' button. VERY difficult to see what the difference is, so let's try a comparison view</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.15.02.png" width="250"/></td>
+<td>This comparison view should (as we expected), less death in the results (bars to the left) than in the baseline (note these are absolute numbers), but the other difference are very small.</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.17.06.png" width="250"/></td>
+<td>Since these are absolute numbers, the numbers really reflect population, with similar patterns in Edinburgh and Glasgow, when we zoom</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.30.59.png" width="250"/></td>
+<td>Not much geographical different within Edinburgh for the results...</td>
+</tr>
+<tr>
+<td><img src="Screenshot 2021-07-22 at 16.31.06.png" width="250"/></td>
+<td>...nor baseline.</td>
+</tr>
+</table>
+
+
+
+
+
+## 16th July 2021 (meeting)
+
+Meeting have been less frequent and progress has been slow.
+
+It 
+
 ## 4th June 2021 (meeting)
 
 ### Pre-meeting
