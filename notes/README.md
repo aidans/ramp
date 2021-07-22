@@ -51,6 +51,8 @@ Aidan tried it and provided some commentary prior to the meeting.
 
 So, do we see the variation that we want to see?
 
+In other news, I have some of the demographic gridmaps working in a [web browser](https://observablehq.com/d/30f06bb09a5d1977) (zoom is a bit dodgy) but with this implementation, the model output data is too big for it to work.
+
 
 ### Meeting
 
