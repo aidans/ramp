@@ -5,7 +5,7 @@
 
 ### Pre-meeting
 
-Claire sent [new data](../data/2021-07-19_pollution.zip) with the random-seed problem solved, so that difference between the two runs are due to model differences.
+Claire sent [two deterministic model runs with less/more  deaths](../data/2021-07-19_pollution.zip). So we hope the that differences between the two runs are now due to model differences.
 
 Aidan tried it and provided some commentary prior to the meeting.
 
@@ -21,7 +21,7 @@ Aidan tried it and provided some commentary prior to the meeting.
 </tr>
 <tr>
 <td><img src="Screenshot 2021-07-22 at 16.08.42.png" width="250"/></td>
-<td>...and the baseline (more death) with the 'b' button. Note large areas have no cases - removing the "susceptible" category results in no data</td>
+<td>...and the baseline (more death) with the 'b' button. Note large areas have no cases - removing the "susceptible" category results in no data.</td>
 </tr>
 <tr>
 <td><img src="Screenshot 2021-07-22 at 16.25.33.png" width="250"/></td>
@@ -56,11 +56,24 @@ In other news, I have some of the demographic gridmaps working in a [web browser
 
 ### Meeting
 
+The visualisation indicates that these are indeed deterministic outputs, with the less/more deaths reflecting the dataset names (i.e. expected)
+
+We noted that 
+ 
+ - very little geographical difference between infection/deaths
+ - people die very quickly
+ - model perhaps not infectious enough to get into more rural areas.
 
 
 ## 16th July 2021 (meeting)
 
-Meeting have been less frequent and progress has been slow. Can't remember when these observations/decisions made. Claire is still to get deterministic versions of the models working, so we can think about what kind of variation we want to see.
+Meeting have been less frequent and progress has been slow. Can't remember when these observations/decisions made.
+
+Due to the comparison visualisation being *very different in the last meeting* has discovered a stochastic term that was overlooked. So the difference we were seeing *was* due to stochastic differences.
+
+Claire is still to get deterministic versions of the models working.
+
+
 
 ## 4th June 2021 (meeting)
 
