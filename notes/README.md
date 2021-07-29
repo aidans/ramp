@@ -1,6 +1,37 @@
 # Meeting (and non-meeting) notes 
 
 
+## 29th July 2021 (meeting)
+
+### Pre-meeting
+
+Aidan has been experimenting with some comparison graphics.
+
+<table width="100%">
+
+<tr>
+<td><img src="Screenshot 2021-07-29 at 14.48.28.png" width="250"/></td>
+<td>ModelBarsComparison. Single category comparison (left bars=less; right bars=more. Absolute numbers). </td>
+</tr>
+
+<tr>
+<td><img src="Screenshot 2021-07-29 at 14.54.19.png" width="250"/></td>
+<td>ModelSpineComparison. Single category comparison (left bars=less; right bars=more. Absolute numbers). As above, relative version.</td>
+</tr>
+
+
+<tr>
+<td><img src="Screenshot 2021-07-29 at 14.50.46.png" width="250"/><br><img src="Screenshot 2021-07-29 at 14.50.53.png" width="250"/></td>
+<td>ModelSpineBoth. Both as once as spineplots (model=top; baseline=top). The bottom image here is with "susceptible removed"</td>
+</tr>
+
+
+
+</table
+
+
+
+
 ## 23nd July 2021 (meeting)
 
 ### Pre-meeting
@@ -8,6 +39,7 @@
 Claire sent [two deterministic model runs with less/more  deaths](../data/2021-07-19_pollution.zip). So we hope the that differences between the two runs are now due to model differences.
 
 Aidan tried it and provided some commentary prior to the meeting.
+
 
 
 <table width="100%">

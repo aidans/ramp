@@ -52,6 +52,7 @@ public class DemographicGridmap extends PApplet{
 	String[] demographicsAttribNames;
 	private String[] statuses;
 	private boolean[] statusShow;
+	private int selectedStatusIdx=0;//for ModelBarComparison ONLY
 	private int numDays;
 	
 	ColourTable ctDemog,ctResult,ctStatus,ctForce,ctReservoir;
@@ -77,8 +78,11 @@ public class DemographicGridmap extends PApplet{
 		DemogColour,
 		DemogBars,
 		ModelBars,
-		ModelBarsComparison,
+		ModelBarsComparison,//only with one status
+		ModelBarsComparisonByStatus,
 		ModelSpine,
+		ModelSpineBoth,
+		ModelSpineComparison,
 		ModelSpineTime,
 		ModelGraph,
 		ModelSpineQuintiles,
@@ -102,8 +106,14 @@ public class DemographicGridmap extends PApplet{
 				return LOAD_OUTPUTS;
 			case ModelBarsComparison:
 				return LOAD_OUTPUTS && LOAD_BASELINE;
+			case ModelBarsComparisonByStatus:
+				return LOAD_OUTPUTS && LOAD_BASELINE;
 			case ModelSpine:
 				return LOAD_OUTPUTS;
+			case ModelSpineBoth:
+				return LOAD_OUTPUTS && LOAD_BASELINE;
+			case ModelSpineComparison:
+				return LOAD_OUTPUTS && LOAD_BASELINE;
 			case ModelSpineTime:
 				return LOAD_OUTPUTS;
 			case ModelGraph:
@@ -585,9 +595,15 @@ public class DemographicGridmap extends PApplet{
 		if (mode==Mode.ModelBars || mode==Mode.ModelSpine)
 			modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length];
 
-		int[][][] modelSumsComparison=null;
-		if (mode==Mode.ModelBarsComparison)
-			modelSumsComparison=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][statuses.length];
+		int[][][][][] modelSumsBoth=null;//last one is 0 or 1
+		if (mode==Mode.ModelSpineBoth)
+			modelSumsBoth=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length][2];
+
+		float[][][] modelComparison=null;//for either by-demogr
+		if (mode==Mode.ModelBarsComparison || mode==Mode.ModelSpineComparison)
+			modelComparison=new float[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10];
+		if (mode==Mode.ModelBarsComparisonByStatus)
+			modelComparison=new float[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][statuses.length];
 
 		
 		int[][][][] modelSumsTime=null;
@@ -641,16 +657,40 @@ public class DemographicGridmap extends PApplet{
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 								if (statusShow[statusIdx])
 									modelSums[xBin][yBin][j][statusIdx]+=resultCounts[currentDay][j][statusIdx];
-						}
+							}
 				}
-				if (mode==Mode.ModelBarsComparison) {
-					//no age
+				if (mode==Mode.ModelSpineBoth) {
 					if (resultCounts!=null) 
 						for (int j=0;j<10;j++) 
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+								if (statusShow[statusIdx]) {
+									modelSumsBoth[xBin][yBin][j][statusIdx][0]+=record.resultCounts[currentDay][j][statusIdx];
+									modelSumsBoth[xBin][yBin][j][statusIdx][1]+=record.resultCounts[currentDay][j][statusIdx];
+								}
+							}
+				}
+				if (mode==Mode.ModelBarsComparison) {
+					//just one status
+					if (resultCounts!=null) 
+						for (int j=0;j<10;j++) 
+							modelComparison[xBin][yBin][j]=record.resultCounts[currentDay][j][selectedStatusIdx]-record.baselineCounts[currentDay][j][selectedStatusIdx];
+				}
+				if (mode==Mode.ModelSpineComparison) {
+					//just one status
+					if (resultCounts!=null) 
+						for (int j=0;j<10;j++)
+							if (record.baselineCounts[currentDay][j][selectedStatusIdx]!=0)
+								modelComparison[xBin][yBin][j]=(record.resultCounts[currentDay][j][selectedStatusIdx]-record.baselineCounts[currentDay][j][selectedStatusIdx])/(float)
+								record.baselineCounts[currentDay][j][selectedStatusIdx];
+				}
+				if (mode==Mode.ModelBarsComparisonByStatus) {
+					//no age
+					if (resultCounts!=null)
+						for (int j=0;j<10;j++) 
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 								if (statusShow[statusIdx])
-									modelSumsComparison[xBin][yBin][statusIdx]+=record.resultCounts[currentDay][j][statusIdx]-record.baselineCounts[currentDay][j][statusIdx];
-						}
+									modelComparison[xBin][yBin][statusIdx]+=record.resultCounts[currentDay][j][statusIdx]-record.baselineCounts[currentDay][j][statusIdx];
+							}
 				}
 				if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph) {
 					if (resultCounts!=null) 
@@ -786,10 +826,16 @@ public class DemographicGridmap extends PApplet{
 						}
 					}
 					else if (mode==Mode.ModelBarsComparison) {
+						for (int ageIdx=0;ageIdx<10;ageIdx++) {
+							float v=abs(modelComparison[x][y][ageIdx]);
+							colourScale=max(colourScale,v);
+						}
+					}
+					else if (mode==Mode.ModelBarsComparisonByStatus) {
 						float sum=0;
 						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
 							if (statusShow[statusIdx])
-								sum+=abs(modelSumsComparison[x][y][statusIdx]);
+								sum+=abs(modelComparison[x][y][statusIdx]);
 
 						colourScale=max(colourScale,sum);
 					}
@@ -799,7 +845,7 @@ public class DemographicGridmap extends PApplet{
 		}
 				
 		//make squares with data white
-		if (mode==Mode.DemogBars || mode==Mode.ModelBars || mode==Mode.ModelGraph || mode==Mode.ModelBarsComparison) {
+		if (mode==Mode.DemogBars || mode==Mode.ModelBars || mode==Mode.ModelBarsComparison || mode==Mode.ModelGraph || mode==Mode.ModelBarsComparisonByStatus) {
 			for (int x=0;x<demogSums.length;x++) {
 				for (int y=0;y<demogSums[x].length;y++) {
 					boolean empty=true;
@@ -853,13 +899,26 @@ public class DemographicGridmap extends PApplet{
 						}
 					}
 					if (mode==Mode.ModelBarsComparison) {
+						float h=(float)spatialBinSize/10f;
+						for (int ageIdx=0;ageIdx<10;ageIdx++) {
+							float yPos=y*spatialBinSize+ageIdx*h;
+							float xPos=x*spatialBinSize+spatialBinSize/2;
+							float w=constrain(map((float)abs(modelComparison[x][y][ageIdx]),0,colourScale,0,spatialBinSize),0,spatialBinSize/2);
+							if (modelComparison[x][y][ageIdx]<0)
+								w*=-1;
+							fill(ctStatus.findColour(selectedStatusIdx+1));
+							rect(xPos,yPos,w,h);
+							xPos+=w;
+						}
+					}
+					if (mode==Mode.ModelBarsComparisonByStatus) {
 						float h=(float)spatialBinSize/statuses.length;
 						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 							float yPos=y*spatialBinSize+statusIdx*h;
 							float xPos=x*spatialBinSize+spatialBinSize/2;
 							if (statusShow[statusIdx]) {
-								float w=constrain(map((float)abs(modelSumsComparison[x][y][statusIdx]),0,colourScale,0,spatialBinSize),0,spatialBinSize/2);
-								if (modelSumsComparison[x][y][statusIdx]<0)
+								float w=constrain(map((float)abs(modelComparison[x][y][statusIdx]),0,colourScale,0,spatialBinSize),0,spatialBinSize/2);
+								if (modelComparison[x][y][statusIdx]<0)
 									w*=-1;
 								fill(ctStatus.findColour(statusIdx+1));
 								rect(xPos,yPos,w,h);
@@ -884,6 +943,40 @@ public class DemographicGridmap extends PApplet{
 									xPos+=w;
 								}
 							}
+						}
+					}
+					if (mode==Mode.ModelSpineBoth) {
+						for (int both=0;both<2;both++) {
+							float h=(float)spatialBinSize/10f/2;
+							for (int j=0;j<10;j++) {
+								float yPos=y*spatialBinSize+spatialBinSize/2*both+j*h;
+								float xPos=x*spatialBinSize;
+								float sum=0;
+								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
+									if (statusShow[statusIdx])
+										sum+=modelSumsBoth[x][y][j][statusIdx][both];
+								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+									if (statusShow[statusIdx]) {
+										float w=constrain(map((float)modelSumsBoth[x][y][j][statusIdx][both],0,sum,0,spatialBinSize),0,spatialBinSize);
+										fill(ctStatus.findColour(statusIdx+1));
+										rect(xPos,yPos,w,h);
+										xPos+=w;
+									}
+								}
+							}
+						}
+					}
+					if (mode==Mode.ModelSpineComparison) {
+						float h=(float)spatialBinSize/10f;
+						for (int ageIdx=0;ageIdx<10;ageIdx++) {
+							float yPos=y*spatialBinSize+ageIdx*h;
+							float xPos=x*spatialBinSize+spatialBinSize/2;
+//							if (modelComparison[x][y][ageIdx]!=0)
+//								println(modelComparison[x][y][ageIdx]);
+							float w=map(modelComparison[x][y][ageIdx],-1,1,-spatialBinSize/2,spatialBinSize/2);
+							fill(ctStatus.findColour(selectedStatusIdx+1));
+							rect(xPos,yPos,w,h);
+							xPos+=w;
 						}
 					}
 					if (mode==Mode.ModelSpineTime) {
@@ -998,7 +1091,7 @@ public class DemographicGridmap extends PApplet{
 			currentDay=0;
 
 		//draw legend
-		if (mode==Mode.ModelBars || mode==Mode.ModelSpine || mode==Mode.ModelGraph || mode==Mode.ModelSpineQuintiles|| mode==Mode.ModelSpineTime || mode==Mode.ModelBarsComparison) {
+		if (mode==Mode.ModelBars|| mode==Mode.ModelBarsComparison || mode==Mode.ModelSpine || mode==Mode.ModelSpineComparison || mode==Mode.ModelGraph || mode==Mode.ModelSpineQuintiles|| mode==Mode.ModelSpineTime || mode==Mode.ModelBarsComparisonByStatus || mode==Mode.ModelSpineBoth) {
 			int y=height-(statuses.length*12);
 			int legendW=0;
 			textAlign(RIGHT,TOP);
@@ -1010,12 +1103,23 @@ public class DemographicGridmap extends PApplet{
 			noStroke();
 			rect(width-legendW,y,legendW,height-y);
 			for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-				if (statusShow[statusIdx]) {
-					fill(ctStatus.findColour(statusIdx+1));
-					rect(width-10,y,10,10);
+				if (mode==Mode.ModelBarsComparison||mode==Mode.ModelSpineComparison) {
+					if (statusIdx==selectedStatusIdx) {
+						fill(ctStatus.findColour(statusIdx+1));
+						rect(width-10,y,10,10);
+					}
+				}
+				else {
+					if (statusShow[statusIdx]) {
+						fill(ctStatus.findColour(statusIdx+1));
+						rect(width-10,y,10,10);
+					}
 				}
 				if (mouseX>width-legendW && mouseY>y && mouseY<y+12 && mouseClicked) {
-					statusShow[statusIdx]=!statusShow[statusIdx];
+					if (mode==Mode.ModelBarsComparison||mode==Mode.ModelSpineComparison)
+						selectedStatusIdx=statusIdx;
+					else
+						statusShow[statusIdx]=!statusShow[statusIdx];
 				}
 				fill(80);
 				text(statuses[statusIdx],width-12,y);
@@ -1073,7 +1177,9 @@ public class DemographicGridmap extends PApplet{
 			if (LOAD_BASELINE && useBaseline)
 				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
 		}
-		if (mode==Mode.ModelBarsComparison)
+		if (mode==Mode.ModelBarsComparison) 
+			title="Comparison between population modelled for "+statuses[selectedStatusIdx]+" by age group (younger at top) for day "+currentDay+" from the baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
+		if (mode==Mode.ModelBarsComparisonByStatus)
 			title="Comparison from baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+") for day "+currentDay;
 		if (mode==Mode.ModelGraph) {
 			title="Population modelled status over time";
@@ -1085,6 +1191,8 @@ public class DemographicGridmap extends PApplet{
 			if (LOAD_BASELINE && useBaseline)
 				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
 		}
+		if (mode==Mode.ModelSpineComparison) 
+			title="Comparison between population modelled for "+statuses[selectedStatusIdx]+" by age group (younger at top) for day "+currentDay+" from the baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
 		if (mode==Mode.ModelSpineQuintiles) {
 			title="Quintiles (by proportion susceptable) of modelled status proportion for day "+currentDay;
 			if (LOAD_BASELINE && useBaseline)
@@ -1107,6 +1215,7 @@ public class DemographicGridmap extends PApplet{
 			title="Force of infection over time (left to right)";
 		if (mode==Mode.ReservoirTime)
 			title="Environmental virus reservoir over time (left to right)";
+		title+=" ("+mode.toString()+")";
 		text(title,0,0,width,height);
 		mouseClicked=false;
 	}
