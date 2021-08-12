@@ -5,7 +5,33 @@
 
 ### Pre-meeting
 
-Major rewrite of the application with better-designed views and controls. In particular, the comparison view is more effective (in my opinion).
+Major rewrite of the application ([verison 1.7](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.7)) with better-designed views and controls. Faster. More systematic. More effective (in my opinion).
+
+ - loads data MUCH faster!
+ - more clear and systematic views (in my opinion). Every view type has abs/relative versions
+ - resamples on load (new aggregate\_input\_m parameter above - defaults to 3000m)
+ - more GUI click on thing at the bottom
+ - changes to the input parameters. No baseline - can load as many datasets in as you want with multiple results_file parameters (must have unique names)
+ - some keystrokes changes - see 'h'
+ - tooltips
+
+Four views:
+ - Population
+ - ModelAgeStatusTimeAnim
+ - ModelStatusTimeGraph
+ - ModelCompStatusTimeGraph
+
+#### Population
+
+<img src="Screenshot 2021-08-12 at 21.26.56.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.27.02.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.27.11.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.27.23.png" width="250"/>
+
+The *population* view shows (upside down) population pyramids. From left to right: *absolute population*, *relative* (shows age structure, locally scaled), *relative with circles* (circles are absolute total population for the grid square) and *relative with fading* (amount of fading is total population for the grid square). The latter *de-emphasises grid squares with lot population*.
+
+#### ModelAgeStatusTimeAnim
+
 
 
 ## 29th July 2021 (meeting)

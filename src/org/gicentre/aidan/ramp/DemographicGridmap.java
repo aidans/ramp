@@ -35,7 +35,7 @@ import ucar.nc2.NetcdfFiles;
 
 public class DemographicGridmap extends PApplet{
 
-	static String APP_NAME="DemographicGridmap, v1.2 (12/08/21)";
+	static String APP_NAME="DemographicGridmap, v1.6 (24/02/21)";
 
 	static String DATAFILE_DEMOGRAPHICS_PATH;
 	static ArrayList<String> DATAFILE_RESULTS_PATHS;
