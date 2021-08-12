@@ -23,10 +23,7 @@ Four views:
 
 #### Population
 
-<img src="Screenshot 2021-08-12 at 21.26.56.png" width="250"/>
-<img src="Screenshot 2021-08-12 at 21.27.02.png" width="250"/>
-<img src="Screenshot 2021-08-12 at 21.27.11.png" width="250"/>
-<img src="Screenshot 2021-08-12 at 21.27.23.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.26.56.png" width="250"/><img src="Screenshot 2021-08-12 at 21.27.02.png" width="250"/><img src="Screenshot 2021-08-12 at 21.27.11.png" width="250"/><img src="Screenshot 2021-08-12 at 21.27.23.png" width="250"/>
 
 The *population* view shows (upside down) population pyramids. From left to right: *absolute population*, *relative* (shows age structure, locally scaled), *relative with circles* (circles are absolute total population for the grid square) and *relative with fading* (amount of fading is total population for the grid square). The latter *de-emphasises grid squares with lot population*.
 
