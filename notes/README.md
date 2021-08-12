@@ -36,10 +36,7 @@ Animation as before, but with the four relative options above. In particular, th
 
 #### ModelStatusTimeGraph
 
-<img src="Screenshot 2021-08-12 at 21.37.14.png" width="250"/>
-<img src="Screenshot 2021-08-12 at 21.37.18.png" width="250"/>
-<img src="Screenshot 2021-08-12 at 21.37.23.png" width="250"/>
-<img src="Screenshot 2021-08-12 at 21.37.38.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.37.14.png" width="250"/><img src="Screenshot 2021-08-12 at 21.37.18.png" width="250"/><img src="Screenshot 2021-08-12 at 21.37.23.png" width="250"/><img src="Screenshot 2021-08-12 at 21.37.38.png" width="250"/>
 
 The time graph version.
 
@@ -56,7 +53,7 @@ The time graph version.
 
 <tr><td><img src="Screenshot 2021-08-12 at 21.47.05.png" width="250"/></td><td>As above, but with circles indicating population.</td></tr>
 
-<tr><td><img src="Screenshot 2021-08-12 at 21.47.33" width="250"/></td><td>More effective version, where *data for low population areas is de-emphasised*. Tooltip shows 9% more people susceptible (because they are not infected), but the lightness indicates comparative low population.</td></tr>.
+<tr><td><img src="Screenshot 2021-08-12 at 21.47.33.png" width="250"/></td><td>More effective version, where *data for low population areas is de-emphasised*. Tooltip shows 9% more people susceptible (because they are not infected), but the lightness indicates comparative low population.</td></tr>.
 
 </table>
 
