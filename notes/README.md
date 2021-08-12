@@ -1,7 +1,7 @@
 # Meeting (and non-meeting) notes 
 
 
-## 13th August 2021 (meeting)
+## 13th August 2021 (pre-meeting)
 
 ### Pre-meeting
 
