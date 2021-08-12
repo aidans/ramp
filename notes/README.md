@@ -5,7 +5,7 @@
 
 ### Pre-meeting
 
-Major rewrite of the application ([verison 1.7](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.7)) with better-designed views and controls. Faster. More systematic. More effective (in my opinion).
+Major rewrite of the application ([version 1.7](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.7)) with better-designed views and controls. Faster. More systematic. More effective (in my opinion).
 
  - loads data MUCH faster!
  - more clear and systematic views (in my opinion). Every view type has abs/relative versions
@@ -28,6 +28,39 @@ Four views:
 The *population* view shows (upside down) population pyramids. From left to right: *absolute population*, *relative* (shows age structure, locally scaled), *relative with circles* (circles are absolute total population for the grid square) and *relative with fading* (amount of fading is total population for the grid square). The latter *de-emphasises grid squares with lot population*.
 
 #### ModelAgeStatusTimeAnim
+
+<img src="Screenshot 2021-08-12 at 21.34.22.png" width="250"/><img src="Screenshot 2021-08-12 at 21.34.26.png" width="250"/><img src="Screenshot 2021-08-12 at 21.34.31.png" width="250"/><img src="Screenshot 2021-08-12 at 21.34.42.png" width="250"/>
+
+Animation as before, but with the four relative options above. In particular, the rightmost emphasises where there's more population.
+
+
+#### ModelStatusTimeGraph
+
+<img src="Screenshot 2021-08-12 at 21.37.14.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.37.18.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.37.23.png" width="250"/>
+<img src="Screenshot 2021-08-12 at 21.37.38.png" width="250"/>
+
+The time graph version.
+
+
+#### ModelCompStatusTimeGraph
+
+*New* comparison version, illustrated with [the two pollution examples of `abundances_poll1.h5` and `abundances_poll2.h5`](https://github.com/aidans/ramp/blob/main/data/2021-04-30_pollution.zip). Click on images to enlarge.
+
+<table width="100%">
+
+<tr><td><img src="Screenshot 2021-08-12 at 21.46.23.png" width="250"/></td><td>Shows *absolute difference* (in numbers of people). Below the centreline is *less than*; above the centreline is *more than* over time (left to right). No difference for the first part of the period, and then clearly shows that more people are affected `abundances_poll1.h5` than `abundances_poll2.h5`. The tooltip indicates fewer susceptible (because they are infected) and also gives percentages.</td></tr>
+
+<tr><td><img src="Screenshot 2021-08-12 at 21.46.44.png" width="250"/></td><td>Show differences as a *proportion* of population. Note that some of the highest proportions are where there's low population. The challenge is to show both relative and absolute (see below). Tooltip indicated 11% more exposed on day 20 than in `abundances_poll2.h5`.</td></tr>
+
+<tr><td><img src="Screenshot 2021-08-12 at 21.47.05.png" width="250"/></td><td>As above, but with circles indicating population.</td></tr>
+
+<tr><td><img src="Screenshot 2021-08-12 at 21.47.33" width="250"/></td><td>More effective version, where *data for low population areas is de-emphasised*. Tooltip shows 9% more people susceptible (because they are not infected), but the lightness indicates comparative low population.</td></tr>.
+
+</table>
+
+Please try before the meeting.
 
 
 
