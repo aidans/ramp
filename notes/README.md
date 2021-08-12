@@ -53,8 +53,9 @@ The time graph version.
  - As above, but with circles indicating population.
  - More effective version, where *data for low population areas is de-emphasised*. Tooltip shows 9% more people susceptible (because they are not infected), but the lightness indicates comparative low population.
 
+(Small problem with is where a status flips from positive to negative, the stacking order is a bit unhelpful - see the one to the right of the tooltip).
 
-Please try before the meeting.
+Would be great if you could try before the meeting.
 
 
 
