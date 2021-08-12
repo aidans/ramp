@@ -5,47 +5,45 @@ import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.gicentre.shputils.ShpUtils;
 import org.gicentre.utils.colour.ColourTable;
+import org.gicentre.utils.gui.EnumChanger;
 import org.gicentre.utils.gui.HelpScreen;
+import org.gicentre.utils.gui.StringChanger;
+import org.gicentre.utils.gui.ValueChanger;
+import org.gicentre.utils.gui.ValueChangerListener;
 import org.gicentre.utils.move.ZoomPan;
 import org.gicentre.utils.move.ZoomPanState;
+import org.gicentre.utils.text.WordWrapper;
 
 import processing.core.PApplet;
+import processing.core.PFont;
 import processing.core.PVector;
-import ucar.ma2.ArrayInt;
-import ucar.ma2.ArrayShort;
 import ucar.ma2.InvalidRangeException;
 import ucar.nc2.NetcdfFile;
 import ucar.nc2.NetcdfFiles;
-import ucar.nc2.Variable;
 
 
 public class DemographicGridmap extends PApplet{
 
-	static String APP_NAME="DemographicGridmap, v1.4 (24/02/21)";
+	static String APP_NAME="DemographicGridmap, v1.2 (12/08/21)";
 
 	static String DATAFILE_DEMOGRAPHICS_PATH;
-	static String DATAFILE_RESULTS_PATH;
-	static String DATAFILE_BASELINE_RESULTS_PATH;
+	static ArrayList<String> DATAFILE_RESULTS_PATHS;
 	static String DATAFILE_FORCE_PATH;
 	static String DATAFILE_POLLUTION;
 	
-	static final boolean LOAD_DEMOGRAPHICS=true; //always true
-	static boolean LOAD_OUTPUTS=false;
-	static boolean LOAD_BASELINE=false;
-	static boolean LOAD_FORCE=false;
+	
+	static int AGGREGATE_INPUT_M=3000;
 
 	
 	ArrayList<Record> records;
@@ -67,79 +65,18 @@ public class DemographicGridmap extends PApplet{
 	int attribBinSize=15; //numbers of attributes
 	
 	Float colourScale=null;
+	Float colourScale2=null;
 	
 	float[] minPopCounts,maxPopCounts;
 	
 	HashMap<String, Path2D> boundaries;
-	HashMap<String, String> boundaryNames;
 	
 	enum Mode{
-		Null,
-		DemogColour,
-		DemogBars,
-		ModelBars,
-		ModelBarsComparison,//only with one status
-		ModelBarsComparisonByStatus,
-		ModelSpine,
-		ModelSpineBoth,
-		ModelSpineComparison,
-		ModelSpineTime,
-		ModelGraph,
-		ModelSpineQuintiles,
-		ForceColour,
-		ReservoirColour,
-		ForceBars,
-		ReservoirBars,
-		ForceTime,
-		ReservoirTime,
-		Pollution;
-		
-		boolean ableToDisplay() {
-			switch (this) {
-			case Null:
-				return false;
-			case DemogColour:
-				return LOAD_DEMOGRAPHICS;
-			case DemogBars:
-				return LOAD_DEMOGRAPHICS;
-			case ModelBars:
-				return LOAD_OUTPUTS;
-			case ModelBarsComparison:
-				return LOAD_OUTPUTS && LOAD_BASELINE;
-			case ModelBarsComparisonByStatus:
-				return LOAD_OUTPUTS && LOAD_BASELINE;
-			case ModelSpine:
-				return LOAD_OUTPUTS;
-			case ModelSpineBoth:
-				return LOAD_OUTPUTS && LOAD_BASELINE;
-			case ModelSpineComparison:
-				return LOAD_OUTPUTS && LOAD_BASELINE;
-			case ModelSpineTime:
-				return LOAD_OUTPUTS;
-			case ModelGraph:
-				return LOAD_OUTPUTS;
-			case ModelSpineQuintiles:
-				return LOAD_OUTPUTS;
-			case ForceColour:
-				return LOAD_FORCE;
-			case ReservoirColour:
-				return LOAD_FORCE;
-			case ForceBars:
-				return LOAD_FORCE;
-			case ReservoirBars:
-				return LOAD_FORCE;
-			case ForceTime:
-				return LOAD_FORCE;
-			case ReservoirTime:
-				return LOAD_FORCE;
-
-			default:
-				return false;
-			}
-			
-		}
+		Population,
+		ModelAgeStatusTimeAnim,
+		ModelStatusTimeGraph,
+		ModelCompStatusTimeGraph,
 	}
-	Mode mode=Mode.DemogColour;
 	
 	boolean mouseClicked=false;
 	
@@ -148,29 +85,37 @@ public class DemographicGridmap extends PApplet{
 	int currentDay=0;
 
 	
-	boolean useBaseline=false;
-	
 	private HelpScreen helpScreen;
 		
+	
+	HashMap<String, String> tile2coordprefix=null;
+	
+	ArrayList<String> datasetNames;
+
+	int statusBarH=18+18;
+	StringChanger datasetChanger;
+	StringChanger comparisonDatasetChanger;
+	enum AbsRel{Absolute,Relative, RelativeSymb,RelativeFade}
+	EnumChanger<AbsRel> absRelChanger;
+	EnumChanger<Mode> modeChanger;
+
 	static public void main(String[] args) {
-		LOAD_OUTPUTS=false;
-		LOAD_BASELINE=false;
 		for (String arg:args) {
 			String[] toks=arg.split("=");
 			if (toks[0].equalsIgnoreCase("demographics_file"))
-				DATAFILE_DEMOGRAPHICS_PATH=toks[1].replaceAll("\"", "");
+				if (toks.length==2) {
+					DATAFILE_DEMOGRAPHICS_PATH=toks[1].replaceAll("\"", "");
+				}
 			if (toks[0].equalsIgnoreCase("results_file")) {
-				DATAFILE_RESULTS_PATH=toks[1].replaceAll("\"", "");
-				LOAD_OUTPUTS=true;
+				if (toks.length==2) {
+					if (DATAFILE_RESULTS_PATHS==null)
+						DATAFILE_RESULTS_PATHS=new ArrayList<>();
+					DATAFILE_RESULTS_PATHS.add(toks[1].replaceAll("\"", ""));
+				}
 			}
-			if (toks[0].equalsIgnoreCase("baseline_results_file")) {
-				DATAFILE_BASELINE_RESULTS_PATH=toks[1].replaceAll("\"", "");
-				LOAD_BASELINE=true;
+			if (toks[0].equalsIgnoreCase("AGGREGATE_INPUT_M") && toks.length==2) {
+				AGGREGATE_INPUT_M=Integer.parseInt(toks[1]);
 			}
-		}
-		if (LOAD_BASELINE && !LOAD_OUTPUTS) {
-			println("Need results_file and baseline_results_file");
-			System.exit(0);
 		}
 			
 		PApplet.main(new String[]{"org.gicentre.aidan.ramp.DemographicGridmap"});
@@ -189,14 +134,11 @@ public class DemographicGridmap extends PApplet{
 		ctForce=ColourTable.getPresetColourTable(ColourTable.GREENS);
 		ctReservoir=ColourTable.getPresetColourTable(ColourTable.BLUES);
 		
-		bounds=new Rectangle(0,0,width,height);
+		bounds=new Rectangle(0,0,width,height-statusBarH);
 		zoomPan=new ZoomPan(this);
 		zoomPan.setZoomMouseButton(RIGHT);
 		loadData();		
 
-		moveToNextDisplayableMode();
-		
-				
 		double ratioX=bounds.width/geoBounds.getWidth();
 		double ratioY=bounds.height/geoBounds.getHeight();
 		if (ratioX<ratioY)
@@ -212,26 +154,68 @@ public class DemographicGridmap extends PApplet{
 		helpScreen.putEntry("right drag up/down","Zoom");
 		helpScreen.addSpacer();
 		helpScreen.putEntry("LEFT and RIGHT","Change grid size");
-		helpScreen.putEntry("UP and DOWN","Increase/decrease number of age categories");
-		helpScreen.putEntry("'[' and ']'","Change colour scaling");
+		helpScreen.putEntry("'[' and ']'","Increase/decrease number of age categories");
+		helpScreen.putEntry("LEFT and RIGHT","Change colour scaling");
+		helpScreen.putEntry("SHIFT LEFT and SHIRT RIGHT","Change relative symbolism scaling");
+		helpScreen.putEntry("Move mouse left/right at top of screen","Manually scroll though time");
+		helpScreen.addSpacer();
 		helpScreen.putEntry("'s'","Reset colour scaling");
-		helpScreen.putEntry("'m/M'","Change display mode (forwards/backwards");
-		helpScreen.putEntry("'b'","Switch between baseline and not baseline");
-		helpScreen.putEntry("'a'","Animate through time");
+		helpScreen.putEntry("'m/M'","Change display mode (forwards/backwards)");
+		helpScreen.putEntry("'d/D'","Change dataset (forwards/backwards)");
+		helpScreen.putEntry("'c/C'","Change scaling type");
+		helpScreen.putEntry("'a'","Turn on/off animation");
 		helpScreen.putEntry("'Click on legend'","Toggle individual status on/off");
 		helpScreen.addSpacer();		
 		helpScreen.putEntry("'h'", "Show/hide help");
 		
 		helpScreen.setFooter("Aidan Slingsby, a.slingsby@city.ac.uk, City, University of London",16,10);
 
-		
+		datasetNames=new ArrayList<String>();
+		for (String path:DATAFILE_RESULTS_PATHS) {
+			String name=new File(path).getName();
+			datasetNames.add(name);
+		}
+		PFont pFont=createDefaultFont(12);
+		datasetChanger=new StringChanger(this,"Dataset",datasetNames,pFont);
+		datasetChanger.setListener(new ValueChangerListener() {
+			public void valueChanged(ValueChanger valueChanger) {
+				colourScale=null;
+				colourScale2=null;
+				if (datasetChanger.getValue().equals(comparisonDatasetChanger.getValue()))
+					comparisonDatasetChanger.changeToNextValue();
+			}
+		});
+		comparisonDatasetChanger=new StringChanger(this,"Comparison dataset",datasetNames,pFont);
+		comparisonDatasetChanger.changeToNextValue();//so it's a different value
+		comparisonDatasetChanger.setListener(new ValueChangerListener() {
+			public void valueChanged(ValueChanger valueChanger) {
+				colourScale=null;
+				colourScale2=null;
+				if (comparisonDatasetChanger.getValue().equals(datasetChanger.getValue()))
+					datasetChanger.changeToNextValue();
+			}
+		});
+		modeChanger=new EnumChanger(this, "Mode", Mode.class,pFont);
+		modeChanger.setListener(new ValueChangerListener() {
+			public void valueChanged(ValueChanger valueChanger) {
+				colourScale=null;
+				colourScale2=null;
+			}
+		});
+		absRelChanger=new EnumChanger(this, "Abs/rel", AbsRel.class,pFont);
+		absRelChanger.setListener(new ValueChangerListener() {
+			public void valueChanged(ValueChanger valueChanger) {
+				colourScale=null;
+				colourScale2=null;
+			}
+		});
 	}
 	
 	private void loadData() {
 		
+		
 		//load os tile lookups
 		
-		HashMap<String, String> tile2coordprefix=null;
 		try {
 			tile2coordprefix=new HashMap<String, String>();
 			BufferedReader br = new BufferedReader(new FileReader("data/tile_osgb.txt"));
@@ -248,55 +232,19 @@ public class DemographicGridmap extends PApplet{
 		catch (IOException e){
 			e.printStackTrace();
 		}
-
-//		{		
-//			try {
-//				{
-//					println("Demographics: "+DATAFILE_DEMOGRAPHICS_PATH);
-//					NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
-//					for (Variable variable:netcdfFile.getVariables())
-//						println(variable.getNameAndDimensions());
-//				}
-//				println();
-//				{
-//					println("Model outputs: "+DATAFILE_RESULTS_PATH);
-//					NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
-//					for (Variable variable:netcdfFile.getVariables())
-//						println(variable.getNameAndDimensions());
-//				}
-//			}
-//			catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
 		
 		long t=System.currentTimeMillis();
-		records=new ArrayList<DemographicGridmap.Record>();
+		records=new ArrayList<Record>();
 
-		HashMap<String, Record> location2Records=new HashMap<String, DemographicGridmap.Record>();
-		
+		Path2D[] shapes=ShpUtils.getShapes("data/scotland_laulevel1_2011/scotland_laulevel1_2011.shp");
+		String[] shapeNames=ShpUtils.getAttribsAsStrings("data/scotland_laulevel1_2011/scotland_laulevel1_2011.shp","name");
 		boundaries=new HashMap<String, Path2D>();
-		boundaryNames=new HashMap<String, String>();
-		Path2D[] shapes=ShpUtils.getShapes("data/uk_nuts3_osgb.shp");
-		String[] nuts3Ids=ShpUtils.getAttribsAsStrings("data/uk_nuts3_osgb.shp","NUTS_ID");
-		for (int i=0;i<nuts3Ids.length;i++)
-			if (nuts3Ids[i].startsWith("UKM"))
-				boundaries.put(nuts3Ids[i], shapes[i]);
-
-		try {
-			BufferedReader br=new BufferedReader(new FileReader("data/NUTS_Level_3__2015__to_NUTS_Level_3__2018__Lookup_in_the_United_Kingdom.csv"));
-			br.readLine();
-			while (br.ready()) {
-				String[] toks=br.readLine().split(",");
-				if (boundaries.keySet().contains(toks[0])) {
-					boundaryNames.put(toks[0],toks[3]);
-				}
-			}
-		}
-		catch (IOException e) {
-
+		for (int i=0;i<shapes.length;i++) {
+			boundaries.put(shapeNames[i],shapes[i]);
 		}
 		
+		
+		HashMap<String, Record> gridKey2Record=new HashMap<>();
 		
 		//get demographics
 		try{
@@ -326,35 +274,45 @@ public class DemographicGridmap extends PApplet{
 			maxPopCounts=new float[demographicsAttribNames.length];
 			Arrays.fill(maxPopCounts,-Float.MAX_VALUE);
 
-			boolean isEmpty=true;
 			for (int i=0;i<locations.length;i++) {
-				Record record=new Record();
-				record.popCounts=new short[demographicsAttribNames.length];
-				for (int j=0;j<demographicsAttribNames.length;j++) {
-					record.popCounts[j]=(short)values[j][i];
-					minPopCounts[j]=min(minPopCounts[j],record.popCounts[j]);
-					maxPopCounts[j]=max(maxPopCounts[j],record.popCounts[j]);
-					if (record.popCounts[j]>0)
+
+				//check if it's empty
+				boolean isEmpty=true;
+				for (int j=0;j<demographicsAttribNames.length;j++)
+					if (values[j][i]>0) {
 						isEmpty=false;
-				}
+						break;
+					}
 				if (!isEmpty) {
+					//get location
 					String gridRef=locations[i];
-					record.osRef=gridRef;
 					String easting=gridRef.substring(2,4);
 					String northing=gridRef.substring(4,6);
 					String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
 					easting=prefix.substring(0,1)+easting+"000";
 					northing=prefix.substring(1)+northing+"000";
-//					println(gridRef+" "+easting+" "+northing);
-					
-					record.x=Integer.parseInt(easting);
-					record.y=Integer.parseInt(northing);
-					if (geoBounds==null)
-						geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
-					else
-						geoBounds.add(record.x,record.y);
-					location2Records.put(locations[i],record);
-					records.add(record);
+					int x=Integer.parseInt(easting)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+					int y=Integer.parseInt(northing)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+					String gridKey=x+"-"+y;
+					Record record=gridKey2Record.get(gridKey);
+					if (record==null) {
+						record=new Record();
+						gridKey2Record.put(gridKey, record);
+						records.add(record);
+						record.x=x;
+						record.y=y;
+						if (geoBounds==null)
+							geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
+						else
+							geoBounds.add(record.x,record.y);
+					}
+					if (record.popCounts==null)
+						record.popCounts=new short[demographicsAttribNames.length];
+					for (int j=0;j<demographicsAttribNames.length;j++) {
+						record.popCounts[j]+=(short)values[j][i];
+						minPopCounts[j]=min(minPopCounts[j],record.popCounts[j]);
+						maxPopCounts[j]=max(maxPopCounts[j],record.popCounts[j]);
+					}
 				}
 			}
 			println("done.");
@@ -365,20 +323,17 @@ public class DemographicGridmap extends PApplet{
 		}
 
 		//get results
-		NetcdfFile netcdfFile;
-		int numLocations=-1;
-		String[] locations=null;
 		try {
-			if (LOAD_OUTPUTS){
+			int chuckLocationSize=100000;//number of locations to import at once (depends on memory)
+			for (int resultsDataIdx=0;resultsDataIdx<DATAFILE_RESULTS_PATHS.size();resultsDataIdx++) {
+				NetcdfFile netcdfFile=null;
+				int numLocations=-1;
+				String[] locations=null;
 				print("Loading model results...");
-				netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATH);
+				netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATHS.get(resultsDataIdx));
 
-//				for (Variable variable:netcdfFile.getVariables())
-//					println(variable.getNameAndDimensions());
-
-				
 				locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
-				
+
 				numDays=(int)netcdfFile.findVariable("/abundances/times").read().getSize();
 				ArrayList<String> statuses=new ArrayList<String>();
 				for (String compartment:(String[])netcdfFile.findVariable("/abundances/compartment").read().copyToNDJavaArray()) {
@@ -395,692 +350,676 @@ public class DemographicGridmap extends PApplet{
 				int numDemographics=10;
 				numLocations=locations.length;
 
-				int[] size=new int[]{numDays,1,numStatuses*numDemographics};
-				Variable variable=netcdfFile.findVariable("abundances/abuns");
-				for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-					Record record=location2Records.get(locations[locationIdx].replaceAll(" ", ""));
-					if (record!=null) {
-						int[] origin={0,locationIdx,0};
-//						ArrayInt.D3 values=null;
-//						try{
-//							values=(ArrayInt.D3)variable.read(origin,size);
-//						}
-						ArrayInt.D3 values=null;
-						try{
-							values=(ArrayInt.D3)variable.read(origin,size);
-						}
-						catch (InvalidRangeException e) {
-							println(e);
-						}
-						for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
-							for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) {
-								for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++) {
-									if (record.resultCounts==null)
-										record.resultCounts=new short[numDays][numDemographics][numStatuses];
-									record.resultCounts[dayIdx][demographicIdx][statusIdx]=(short)values.get(dayIdx,0,statusIdx*numDemographics+demographicIdx);
-								}
-							}
-						}
+				int[] size=new int[]{numDays,chuckLocationSize,numStatuses*numDemographics};
+				for (int chunkOrigin=0;chunkOrigin<locations.length;chunkOrigin+=chuckLocationSize) { 
+
+					int[] origin={0,chunkOrigin,0};
+
+					int[][][] modelData=null;
+					if (chunkOrigin+size[1]>numLocations)
+						size[1]=numLocations-chunkOrigin;
+					print(chunkOrigin+size[1]+"...");
+					try {
+						modelData = (int[][][])netcdfFile.findVariable("abundances/abuns").read(origin,size).copyToNDJavaArray();
+					} catch (InvalidRangeException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
-					else {
-//						println("couldn't find "+locations[locationIdx]);
-					}
-				}
-				if (LOAD_FORCE){
-					size=new int[]{numDays,1,2};
-					variable=netcdfFile.findVariable("/abundances/abuns_virus");
-					for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-						Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
-						if (record!=null) {
-							int[] origin={0,locationIdx,0};
-							ArrayInt.D3 values=null;
-							try{
-								values=(ArrayInt.D3)variable.read(origin,size);
-							}
-							catch (InvalidRangeException e) {
-								println(e);
-							}
-							for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
-								if (record.resultForce==null)
-									record.resultForce=new short[numDays];
-								record.resultForce[dayIdx]=(short)values.get(dayIdx,0,0);
-								if (record.resultReservoir==null)
-									record.resultReservoir=new short[numDays];
-								record.resultReservoir[dayIdx]=(short)values.get(dayIdx,0,1);
-							}
+
+					for (int locationIdx=chunkOrigin;locationIdx<chunkOrigin+size[1];locationIdx++) {
+						//get location
+						String gridRef=locations[locationIdx].replaceAll(" ", "");
+						String easting=gridRef.substring(2,4);
+						String northing=gridRef.substring(4,6);
+						String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
+						easting=prefix.substring(0,1)+easting+"000";
+						northing=prefix.substring(1)+northing+"000";
+						int x=Integer.parseInt(easting)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+						int y=Integer.parseInt(northing)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+						String gridKey=x+"-"+y;
+						Record record=gridKey2Record.get(gridKey);
+						if (record==null) {
+							record=new Record();
+							//								println("Made new");
+							gridKey2Record.put(gridKey, record);
+							records.add(record);
+							record.x=x;
+							record.y=y;
+							if (geoBounds==null)
+								geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
+							else
+								geoBounds.add(record.x,record.y);
 						}
+						if (record.resultCounts==null)
+							record.resultCounts=new short[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
+
+						for (int dayIdx=0;dayIdx<numDays;dayIdx++) 
+							for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) 
+								for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++)
+									record.resultCounts[resultsDataIdx][dayIdx][demographicIdx][statusIdx]+=(short)modelData[dayIdx][locationIdx-chunkOrigin][statusIdx*numDemographics+demographicIdx];
 					}
 				}
 				println("done.");
-				netcdfFile.close();
-				
-				if (LOAD_BASELINE){
-					print("Loading baseline model results...");
-					netcdfFile = NetcdfFiles.open(DATAFILE_BASELINE_RESULTS_PATH);
-					variable=netcdfFile.findVariable("/abundances/abuns");
-					for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-						Record record=location2Records.get(locations[locationIdx].replaceAll(" ", ""));
-						if (record!=null) {
-							int[] origin={0,locationIdx,0};
-							ArrayInt.D3 values=null;
-							try{
-								values=(ArrayInt.D3)variable.read(origin,size);
-							}
-							catch (InvalidRangeException e) {
-								println(e);
-							}
-							for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
-								for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) {
-									for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++) {
-										if (record.baselineCounts==null)
-											record.baselineCounts=new short[numDays][numDemographics][numStatuses];
-										record.baselineCounts[dayIdx][demographicIdx][statusIdx]=(short)values.get(dayIdx,0,statusIdx*numDemographics+demographicIdx);
-									}
-								}
-							}
-						}
-					}
-					if (LOAD_FORCE){
-						size=new int[]{numDays,1,2};
-						variable=netcdfFile.findVariable("/abundances/abuns_virus");
-						for (int locationIdx=0;locationIdx<numLocations;locationIdx++) {
-							Record record=location2Records.get(locations[locationIdx].replaceAll(" km", ""));
-							if (record!=null) {
-								int[] origin={0,locationIdx,0};
-								ArrayInt.D3 values=null;
-								try{
-									values=(ArrayInt.D3)variable.read(origin,size);
-								}
-								catch (InvalidRangeException e) {
-									println(e);
-								}
-								for (int dayIdx=0;dayIdx<numDays;dayIdx++) {
-									if (record.baselineForce==null)
-										record.baselineForce=new short[numDays];
-									record.baselineForce[dayIdx]=(short)values.get(dayIdx,0,0);
-									if (record.baselineReservoir==null)
-										record.baselineReservoir=new short[numDays];
-									record.baselineReservoir[dayIdx]=(short)values.get(dayIdx,0,1);
-								}
-							}
-						}
-					}
-				}
-				println("done.");
-				netcdfFile.close();
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		
-		
+		catch (IOException e) {
+			println(e);
+		}
+
+
 		System.gc();
 	
 		long t1=System.currentTimeMillis();
-		println(records.size()+" records in "+(t1-t)/1000+" seconds");
+		println("Loaded data for "+records.size()+" locations (resampled to "+AGGREGATE_INPUT_M+"m) in "+(t1-t)/1000+" seconds.");
 
 	//output tsvs
-		if (LOAD_DEMOGRAPHICS) {
-			try {
-				BufferedWriter bw=new BufferedWriter(new PrintWriter("demographics.tsv"));
-				bw.write("x\ty");
-				for(String label:demographicsAttribNames)
-					bw.write("\t"+label);
-				bw.write("\n");
-				for (Record record:location2Records.values()) {
-					bw.write(record.x+"\t"+record.y);
-					for (short v:record.popCounts)
-						bw.write("\t"+v);
-					bw.write("\n");
-				}
-				bw.close();
-			}
-			catch (IOException e) {
-
-			}
-		}
+//		if (LOAD_DEMOGRAPHICS) {
+//			try {
+//				BufferedWriter bw=new BufferedWriter(new PrintWriter("demographics.tsv"));
+//				bw.write("x\ty");
+//				for(String label:demographicsAttribNames)
+//					bw.write("\t"+label);
+//				bw.write("\n");
+//				for (Record record:location2Records.values()) {
+//					bw.write(record.x+"\t"+record.y);
+//					for (short v:record.popCounts)
+//						bw.write("\t"+v);
+//					bw.write("\n");
+//				}
+//				bw.close();
+//			}
+//			catch (IOException e) {
+//
+//			}
+//		}
 
 		// resultCounts; //by time, demographicGroup, infectionType
-		if (LOAD_OUTPUTS) {
-			try {
-				BufferedWriter bw=new BufferedWriter(new PrintWriter("outputs.tsv"));
-				bw.write("x\ty");
-				for(String label:demographicsAttribNames)
-					bw.write("\tpop_"+label.trim());
-				for(String status:statuses)
-					for(int demog=0;demog<10;demog++)
-						for(int day=0;day<numDays;day++) 
-							bw.write("\t"+"output_"+status.trim()+"_age"+demog*10+"-"+(demog*10+9)+"_t"+day);
-				
-				
-				bw.write("\n");
-				for (Record record:location2Records.values()) {
-					bw.write(record.x+"\t"+record.y);
-					for (short v:record.popCounts)
-						bw.write("\t"+v);
-					for(int statusIdx=0; statusIdx<statuses.length;statusIdx++)
-						for(int demog=0;demog<10;demog++)
-							for(int day=0;day<numDays;day++) 
-								if (record.resultCounts!=null)
-									bw.write("\t"+record.resultCounts[day][demog][statusIdx]);
-					bw.write("\n");
-				}
-				bw.close();
-			}
-			catch (IOException e) {
-
-			}
+//		if (LOAD_OUTPUTS) {
+//			try {
+//				BufferedWriter bw=new BufferedWriter(new PrintWriter("outputs.tsv"));
+//				bw.write("x\ty");
+//				for(String label:demographicsAttribNames)
+//					bw.write("\tpop_"+label.trim());
+//				for(String status:statuses)
+//					for(int demog=0;demog<10;demog++)
+//						for(int day=0;day<numDays;day++) 
+//							bw.write("\t"+"output_"+status.trim()+"_age"+demog*10+"-"+(demog*10+9)+"_t"+day);
+//				
+//				
+//				bw.write("\n");
+//				for (Record record:location2Records.values()) {
+//					bw.write(record.x+"\t"+record.y);
+//					for (short v:record.popCounts)
+//						bw.write("\t"+v);
+//					for(int statusIdx=0; statusIdx<statuses.length;statusIdx++)
+//						for(int demog=0;demog<10;demog++)
+//							for(int day=0;day<numDays;day++) 
+//								if (record.resultCounts!=null)
+//									bw.write("\t"+record.resultCounts[day][demog][statusIdx]);
+//					bw.write("\n");
+//				}
+//				bw.close();
+//			}
+//			catch (IOException e) {
+//
+//			}
 			
-		}
+//		}
 	}
 
+	
+				
+				
 	public void draw() {
+		final int mouseX=this.mouseX;
+		final int mouseY=this.mouseY;
+		final int spatialBinSize=this.spatialBinSize;
+		
+		final String datasetName=datasetChanger.getValue();
+		final String comparisonDatasetName=comparisonDatasetChanger.getValue();
+		final Mode mode=modeChanger.getValueEnum();
+		final AbsRel absRel=absRelChanger.getValueEnum();
+
+		final boolean showTooltip=false;
+		
 		background(200);
 		
-		String mouseOveredGridRef=null;
 		
-		if (mouseY>height-20)
+		if (mouseY<50)
 			currentDay=(int)map(mouseX,0,width,0,numDays);
-		
-		int graphMax=0;
-		
-		int forceMax=0;
-		int reservoirMax=0;
-		
-		ZoomPanState zoomPanState=zoomPan.getZoomPanState();
-		int[][][] demogSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][demographicsAttribNames.length/attribBinSize];
-		
-		int[][][][] modelSums=null;
-		if (mode==Mode.ModelBars || mode==Mode.ModelSpine)
-			modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length];
-
-		int[][][][][] modelSumsBoth=null;//last one is 0 or 1
-		if (mode==Mode.ModelSpineBoth)
-			modelSumsBoth=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length][2];
-
-		float[][][] modelComparison=null;//for either by-demogr
-		if (mode==Mode.ModelBarsComparison || mode==Mode.ModelSpineComparison)
-			modelComparison=new float[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10];
-		if (mode==Mode.ModelBarsComparisonByStatus)
-			modelComparison=new float[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][statuses.length];
-
-		
-		int[][][][] modelSumsTime=null;
-		if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph)
-			modelSumsTime=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays][statuses.length];//no demographics
-
-		short[][][][] modelSumsQuintiles=null;
-		ArrayList<ValuePair<Float, short[]>>[][] modelSumsQuintilesList=null;
-		if (mode==Mode.ModelSpineQuintiles) {
-			modelSumsQuintiles=new short[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][5][statuses.length];//no demographics
-			modelSumsQuintilesList=new ArrayList[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize];
-		}
-
-		int[][] forceReservoirCounts=null;
-		if (mode==Mode.ForceColour || mode==Mode.ReservoirColour||mode==Mode.ForceBars || mode==Mode.ReservoirBars || mode==Mode.ForceTime || mode==Mode.ReservoirTime) 
-			forceReservoirCounts=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize];
-		
-		//include days here, because we need to compute max for whole period (and also for animation
-		int[][][] forceAvgs=null;
-		if (mode==Mode.ForceColour || mode==Mode.ForceBars || mode==Mode.ForceTime)
-			forceAvgs=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays];
-		
-		int[][][] reservoirAvgs=null;
-		if (mode==Mode.ReservoirColour || mode==Mode.ReservoirBars || mode==Mode.ReservoirTime)
-			reservoirAvgs=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays];
-
-		int mouseXBin=(int)(mouseX/spatialBinSize);
-		int mouseYBin=(int)(mouseY/spatialBinSize);
-		
-		for (Record record:records) {
-			short[][][] resultCounts=null;
-			if (LOAD_BASELINE==true && useBaseline)
-				resultCounts=record.baselineCounts;
-			else
-				resultCounts=record.resultCounts;
-
-			float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-			float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
-			PVector pt=zoomPanState.getCoordToDisp(x,y);
-			int xBin=(int)(pt.x/spatialBinSize);
-			int yBin=(int)(pt.y/spatialBinSize);
-			if (xBin>=0 && xBin<demogSums.length && yBin>=0 && yBin<demogSums[0].length) {
-				for (int j=0;j<demographicsAttribNames.length;j++) {
-					if (j/attribBinSize<demogSums[xBin][yBin].length) {
-						demogSums[xBin][yBin][j/attribBinSize]+=record.popCounts[j];
-					}
-				}
-				if (mode==Mode.ModelBars || mode==Mode.ModelSpine) {
-					if (resultCounts!=null) 
-						for (int j=0;j<10;j++) 
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx])
-									modelSums[xBin][yBin][j][statusIdx]+=resultCounts[currentDay][j][statusIdx];
-							}
-				}
-				if (mode==Mode.ModelSpineBoth) {
-					if (resultCounts!=null) 
-						for (int j=0;j<10;j++) 
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									modelSumsBoth[xBin][yBin][j][statusIdx][0]+=record.resultCounts[currentDay][j][statusIdx];
-									modelSumsBoth[xBin][yBin][j][statusIdx][1]+=record.resultCounts[currentDay][j][statusIdx];
-								}
-							}
-				}
-				if (mode==Mode.ModelBarsComparison) {
-					//just one status
-					if (resultCounts!=null) 
-						for (int j=0;j<10;j++) 
-							modelComparison[xBin][yBin][j]=record.resultCounts[currentDay][j][selectedStatusIdx]-record.baselineCounts[currentDay][j][selectedStatusIdx];
-				}
-				if (mode==Mode.ModelSpineComparison) {
-					//just one status
-					if (resultCounts!=null) 
-						for (int j=0;j<10;j++)
-							if (record.baselineCounts[currentDay][j][selectedStatusIdx]!=0)
-								modelComparison[xBin][yBin][j]=(record.resultCounts[currentDay][j][selectedStatusIdx]-record.baselineCounts[currentDay][j][selectedStatusIdx])/(float)
-								record.baselineCounts[currentDay][j][selectedStatusIdx];
-				}
-				if (mode==Mode.ModelBarsComparisonByStatus) {
-					//no age
-					if (resultCounts!=null)
-						for (int j=0;j<10;j++) 
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx])
-									modelComparison[xBin][yBin][statusIdx]+=record.resultCounts[currentDay][j][statusIdx]-record.baselineCounts[currentDay][j][statusIdx];
-							}
-				}
-				if (mode==Mode.ModelSpineTime || mode==Mode.ModelGraph) {
-					if (resultCounts!=null) 
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)  
-							if (statusShow[statusIdx]) {
-								for (int day=0;day<numDays;day++) {
-									for (int j=0;j<10;j++) {
-										modelSumsTime[xBin][yBin][day][statusIdx]+=resultCounts[day][j][statusIdx];
-									}
-								}
-							}
-				}
-				if (mode==Mode.ModelSpineQuintiles) {
-					if (resultCounts!=null) { 
-						ArrayList<ValuePair<Float, short[]>> al=modelSumsQuintilesList[xBin][yBin];
-						if (al==null){
-							al=new ArrayList<>();
-							modelSumsQuintilesList[xBin][yBin]=al;
-						}
-						short[] vs=new short[statuses.length];
-						int sum=0;
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							if (statusShow[statusIdx]) {
-								for (int j=0;j<10;j++)
-									vs[statusIdx]+=resultCounts[currentDay][j][statusIdx];
-								sum+=vs[statusIdx];
-							}
-						}
-						if (sum>0) {//only include if there's some data
-							ValuePair<Float, short[]> vp=new ValuePair<Float, short[]>(vs[0]/(float)sum, vs);
-							al.add(vp);
-						}
-					}
-				}
-				if (mode==Mode.ForceColour || mode==Mode.ReservoirColour||mode==Mode.ForceBars || mode==Mode.ReservoirBars || mode==Mode.ForceTime || mode==Mode.ReservoirTime)
-					if (record.resultForce!=null)
-							forceReservoirCounts[xBin][yBin]++;
-					
-				if (mode==Mode.ForceColour || mode==Mode.ForceBars || mode==Mode.ForceTime)
-					if (record.resultForce!=null)
-						for (int day=0;day<numDays;day++)
-							forceAvgs[xBin][yBin][day]+=record.resultForce[day];//do all days
 				
-				if (mode==Mode.ReservoirColour || mode==Mode.ReservoirBars || mode==Mode.ReservoirTime)
-					if (record.resultReservoir!=null)
-						for (int day=0;day<numDays;day++)
-							reservoirAvgs[xBin][yBin][day]+=record.resultReservoir[day];
-			}
-			if (mouseXBin==xBin && mouseYBin==yBin)
-				mouseOveredGridRef=record.osRef;
-		}
-		if (mode==Mode.ModelGraph)
-			for (int xBin=0;xBin<modelSumsTime.length;xBin++)
-				for (int yBin=0;yBin<modelSumsTime[xBin].length;yBin++)
-					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-						if (statusShow[statusIdx]) {
-							for (int day=0;day<numDays;day++)
-								graphMax=max(graphMax,modelSumsTime[xBin][yBin][day][statusIdx]);
-						}
+		ZoomPanState zoomPanState=zoomPan.getZoomPanState();
+		
+		int numCols=(int)(bounds.getWidth()/spatialBinSize);
+		int numRows=(int)(bounds.getHeight()/spatialBinSize);
+		
+		
+		String title="";
+
+		String tooltip="";
+		
+		if (mode==Mode.Population) {
 			
-		
-		if (mode==Mode.ModelSpineQuintiles) {
-			for (int xBin=0;xBin<modelSumsQuintilesList.length;xBin++) {
-				for (int yBin=0;yBin<modelSumsQuintilesList[xBin].length;yBin++) {
-					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-						if (statusShow[statusIdx]) {
-							ArrayList<ValuePair<Float, short[]>> al=modelSumsQuintilesList[xBin][yBin];
-							if (al!=null && !al.isEmpty()){
-								Collections.sort(al,ValuePair.getValue1Comparator());
-								float binSize=al.size()/5f;
-								modelSumsQuintiles[xBin][yBin][0]=al.get((int)(binSize/2)).v2;
-								modelSumsQuintiles[xBin][yBin][1]=al.get((int)(binSize+binSize/2)).v2;
-								modelSumsQuintiles[xBin][yBin][2]=al.get((int)(binSize*2+binSize/2)).v2;
-								modelSumsQuintiles[xBin][yBin][3]=al.get((int)(binSize*3+binSize/2)).v2;
-								modelSumsQuintiles[xBin][yBin][4]=al.get((int)(binSize*4+binSize/2)).v2;
-							}
+			title="Population of residents by age group (younger at top)";
+			//GRID THE DATA
+			int[][][] demogSums=new int[numCols][numRows][demographicsAttribNames.length/attribBinSize];
+			for (Record record:records) {
+				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
+				PVector pt=zoomPanState.getCoordToDisp(x,y);
+				int xBin=(int)(pt.x/spatialBinSize);
+				int yBin=(int)(pt.y/spatialBinSize);
+				if (record.popCounts!=null && xBin>=0 && xBin<demogSums.length && yBin>=0 && yBin<demogSums[0].length) {
+					for (int j=0;j<demographicsAttribNames.length;j++) {
+						if (j/attribBinSize<demogSums[xBin][yBin].length) {
+							demogSums[xBin][yBin][j/attribBinSize]+=record.popCounts[j];
 						}
 					}
 				}
 			}
-			modelSumsQuintilesList=null;
-		}
-		if (mode==Mode.ForceColour || mode==Mode.ForceBars || mode==Mode.ForceTime) {
-			//find average
-			for (int xBin=0;xBin<forceAvgs.length;xBin++) {
-				for (int yBin=0;yBin<forceAvgs[xBin].length;yBin++) {
-					if (forceReservoirCounts[xBin][yBin]>0) {
-						//for all days
-						for (int day=0;day<numDays;day++) {
-							forceAvgs[xBin][yBin][day]/=forceReservoirCounts[xBin][yBin];
-							forceMax=max(forceMax,forceAvgs[xBin][yBin][day]);
-						}
-					}
-				}
-			}
-		}
-
-		if (mode==Mode.ReservoirColour || mode==Mode.ReservoirBars || mode==Mode.ReservoirTime) {
-			//find average
-			for (int xBin=0;xBin<reservoirAvgs.length;xBin++) {
-				for (int yBin=0;yBin<reservoirAvgs[xBin].length;yBin++) {
-					if (forceReservoirCounts[xBin][yBin]>0) {
-						//for all days
-						for (int day=0;day<numDays;day++) {
-							reservoirAvgs[xBin][yBin][day]/=forceReservoirCounts[xBin][yBin];
-							reservoirMax=max(reservoirMax,reservoirAvgs[xBin][yBin][day]);
-						}
-					}
-				}
-			}
-		}
-
-		
-		//if need to rescale colour/width
-		Float colourScale=this.colourScale;
-		if (colourScale==null) {
-			colourScale=-Float.MAX_VALUE;
-			for (int x=0;x<demogSums.length;x++) {
-				for (int y=0;y<demogSums.length;y++) {
-					if (mode==Mode.DemogBars||mode==Mode.DemogColour) {
+			//FIND MAX (IF NECESSARY) for glyph
+			Float colourScale=this.colourScale;
+			if (colourScale==null && absRel==AbsRel.Absolute) {
+				//for RELATIVE, max pop is any one age band
+				colourScale=-Float.MAX_VALUE;
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
 						for (int j=0;j<demographicsAttribNames.length/attribBinSize;j++) {
 							colourScale=max(colourScale,(float)(demogSums[x][y][j]));
 						}
 					}
-					else if (mode==Mode.ModelBars) {
+				}
+				this.colourScale=colourScale;
+			}
+			//FIND MAX (IF NECESSARY) for transp/symbolsize
+			Float colourScale2=this.colourScale2;
+			if (colourScale2==null && absRel!=AbsRel.Absolute) {
+				//max pop in any square
+				colourScale2=-Float.MAX_VALUE;
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
+						int localSum=0;
+						for (int j=0;j<demographicsAttribNames.length/attribBinSize;j++) {
+							if (demogSums[x][y][j]>localSum)
+								localSum=demogSums[x][y][j];
+						}
+						colourScale2=max(colourScale2,localSum);
+					}
+				}
+				this.colourScale2=colourScale2;
+			}
+			
+			//DRAW
+			for (int x=0;x<numCols;x++) {
+				for (int y=0;y<numRows;y++) {
+					int localSum=0;
+					boolean empty=true;
+					for (int j=0;j<demogSums[x][y].length;j++) {
+						if (demogSums[x][y][j]>localSum)
+							localSum=demogSums[x][y][j];
+						if (demogSums[x][y][j]>0)
+							empty=false;
+					}
+					if (!empty) {
+						//make background white
+						fill(255);
+						noStroke();
+						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+						//draw glyphs
+						for (int j=0;j<demogSums[x][y].length;j++) {
+							float w;
+							if (absRel==AbsRel.Absolute) 
+								w=constrain(map((float)demogSums[x][y][j],0,colourScale,0,spatialBinSize-2),1,spatialBinSize-2);
+							else
+								w=constrain(map((float)demogSums[x][y][j],0,localSum,0,spatialBinSize-2),1,spatialBinSize-2);
+							int transp=255;
+							if (absRel==AbsRel.RelativeFade)
+								transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
+							fill(ctDemog.findColour(0.6f),transp);
+							Rectangle2D r=new Rectangle.Float(x*spatialBinSize+spatialBinSize/2-w/2,y*spatialBinSize+1+j*((float)(spatialBinSize-2)/demogSums[x][y].length),w,((float)(spatialBinSize-2)/demogSums[x][y].length));
+							rect((float)r.getX(),(float)r.getY(),(float)r.getWidth(),(float)r.getHeight());
+							if (r.contains(mouseX,mouseY))
+								tooltip=demogSums[x][y][j]+" people";
+							
+						}
+					}
+				}
+			}
+			if (absRel==AbsRel.RelativeSymb) {
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
+						int localSum=0;
+						for (int j=0;j<demogSums[x][y].length;j++)
+							if (demogSums[x][y][j]>localSum)
+								localSum=demogSums[x][y][j];
+						noFill();
+						stroke(0,100);
+						float w=map(localSum,0,colourScale2,0,spatialBinSize);
+						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
+					}
+				}
+			}
+
+			//draw grid lines
+			stroke(0,30);
+			for (int x=0;x<numCols;x++) 
+				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
+			for (int y=0;y<numRows;y++)
+				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
+
+		}
+		
+		
+		
+		
+		
+		else if (mode==Mode.ModelAgeStatusTimeAnim && !datasetNames.isEmpty()) {
+			int currentDatasetIdx=datasetNames.indexOf(datasetName);
+			title="Population modelled status by age group (younger at top) for day "+currentDay;
+			if (DATAFILE_RESULTS_PATHS.size()>1)
+				title+=" for "+new File(DATAFILE_RESULTS_PATHS.get(currentDatasetIdx)).getName();
+			//GRID THE DATA
+			int[][][][] modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length];
+			for (Record record:records) {
+
+				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
+				PVector pt=zoomPanState.getCoordToDisp(x,y);
+				int xBin=(int)(pt.x/spatialBinSize);
+				int yBin=(int)(pt.y/spatialBinSize);
+				if (record.popCounts!=null && xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows) {
+					for (int j=0;j<10;j++) 
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+//							if (statusShow[statusIdx])
+								modelSums[xBin][yBin][j][statusIdx]+=record.resultCounts[currentDatasetIdx][currentDay][j][statusIdx];
+						}
+				}
+			}
+			//FIND MAX (IF NECESSARY) for glyph
+			Float colourScale=this.colourScale;
+			if (colourScale==null && absRel==AbsRel.Absolute) {
+				colourScale=-Float.MAX_VALUE;
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
 						for (int j=0;j<10;j++) {
 							float sum=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-								if (statusShow[statusIdx])
-									sum+=modelSums[x][y][j][statusIdx];
-
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+								sum+=modelSums[x][y][j][statusIdx];
 							colourScale=max(colourScale,sum);
 						}
 					}
-					else if (mode==Mode.ModelBarsComparison) {
-						for (int ageIdx=0;ageIdx<10;ageIdx++) {
-							float v=abs(modelComparison[x][y][ageIdx]);
-							colourScale=max(colourScale,v);
-						}
-					}
-					else if (mode==Mode.ModelBarsComparisonByStatus) {
+				}
+				this.colourScale=colourScale;
+			}
+			//FIND MAX (IF NECESSARY) for transp/symbolsize
+			Float colourScale2=this.colourScale2;
+			if (colourScale2==null && absRel!=AbsRel.Absolute) {
+				//max pop in any square
+				colourScale2=-Float.MAX_VALUE;
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
 						float sum=0;
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-							if (statusShow[statusIdx])
-								sum+=abs(modelComparison[x][y][statusIdx]);
-
-						colourScale=max(colourScale,sum);
+						for (int j=0;j<10;j++)
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+								sum+=modelSums[x][y][j][statusIdx];
+						colourScale2=max(colourScale2,sum);
 					}
 				}
+				this.colourScale2=colourScale2;
 			}
-			this.colourScale=colourScale;
-		}
-				
-		//make squares with data white
-		if (mode==Mode.DemogBars || mode==Mode.ModelBars || mode==Mode.ModelBarsComparison || mode==Mode.ModelGraph || mode==Mode.ModelBarsComparisonByStatus) {
-			for (int x=0;x<demogSums.length;x++) {
-				for (int y=0;y<demogSums[x].length;y++) {
+			//DRAW
+			for (int x=0;x<numCols;x++) {
+				for (int y=0;y<numRows;y++) {
+					int localSum=0;
 					boolean empty=true;
-					for (int j=0;j<demogSums[x][y].length;j++) {
-						if (demogSums[x][y][j]>0)
-							empty=false;
-						if (!empty) {
-							fill(255);
-							rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+					for (int j=0;j<modelSums[x][y].length;j++)
+						for (int k=0;k<modelSums[x][y][j].length;k++) {
+							localSum+=modelSums[x][y][j][k];
+							if (modelSums[x][y][j][k]>0)
+								empty=false;
+						}
+					if (!empty) {
+						//make background white
+						fill(255);
+						noStroke();
+						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+						float h=(float)spatialBinSize/10f;
+						for (int j=0;j<10;j++) {
+							float xPos=bounds.x+x*spatialBinSize+1;
+							float yPos=bounds.y+y*spatialBinSize+1+j*h;
+							int sum=0;
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
+								sum+=modelSums[x][y][j][statusIdx];
+
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+								if (statusShow[statusIdx]) {
+									float w;
+									if (absRel==AbsRel.Absolute)
+										w=constrain(map((float)modelSums[x][y][j][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
+									else
+										w=constrain(map((float)modelSums[x][y][j][statusIdx],0,sum,0,spatialBinSize-2),0,spatialBinSize-2);
+									int transp=255;
+									if (absRel==AbsRel.RelativeFade)
+										transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
+									fill(ctStatus.findColour(statusIdx+1),transp);
+									rect(xPos,yPos,w,h);
+									if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos && mouseY<yPos+h)
+										tooltip=modelSums[x][y][j][statusIdx]+" ("+(int)(modelSums[x][y][j][statusIdx]/(float)sum*100)+"%) people aged "+(j*10)+"-"+((j+1)*10-1)+" are "+statuses[statusIdx];
+									xPos+=w;
+								}
+							}
 						}
 					}
 				}
 			}
-		}
-		
-
-		noStroke();
-		for (int x=0;x<demogSums.length;x++) {
-			for (int y=0;y<demogSums[x].length;y++) {
-				boolean empty=true;
-				for (int j=0;j<demogSums[x][y].length;j++)
-					if (demogSums[x][y][j]>0)
-						empty=false;
-				if (!empty) {
-					if (mode==Mode.DemogColour || mode==Mode.DemogBars) {
-						for (int j=0;j<demogSums[x][y].length;j++) {
-							if (mode==Mode.DemogColour) {
-								fill(ctDemog.findColour(map((float)demogSums[x][y][j],0,colourScale,0,1)));
-								rect(x*spatialBinSize,y*spatialBinSize+j*((float)spatialBinSize/demogSums[x][y].length),spatialBinSize,((float)(spatialBinSize)/demogSums[x][y].length));
-							}
-							else if (mode==Mode.DemogBars) {
-								float w=constrain(map((float)demogSums[x][y][j],0,colourScale,0,spatialBinSize),0,spatialBinSize);
-								fill(ctDemog.findColour(0.6f));
-								rect(x*spatialBinSize+spatialBinSize/2-w/2,y*spatialBinSize+j*((float)spatialBinSize/demogSums[x][y].length),w,((float)(spatialBinSize)/demogSums[x][y].length));						
-							}
-						}
-					}
-					if (mode==Mode.ModelBars) {
-						float h=(float)spatialBinSize/10f;
-						for (int j=0;j<10;j++) {
-							float yPos=y*spatialBinSize+j*h;
-							float xPos=x*spatialBinSize;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									float w=constrain(map((float)modelSums[x][y][j][statusIdx],0,colourScale,0,spatialBinSize),0,spatialBinSize);
-									fill(ctStatus.findColour(statusIdx+1));
-									rect(xPos,yPos,w,h);
-									xPos+=w;
-								}
-							}
-						}
-					}
-					if (mode==Mode.ModelBarsComparison) {
-						float h=(float)spatialBinSize/10f;
-						for (int ageIdx=0;ageIdx<10;ageIdx++) {
-							float yPos=y*spatialBinSize+ageIdx*h;
-							float xPos=x*spatialBinSize+spatialBinSize/2;
-							float w=constrain(map((float)abs(modelComparison[x][y][ageIdx]),0,colourScale,0,spatialBinSize),0,spatialBinSize/2);
-							if (modelComparison[x][y][ageIdx]<0)
-								w*=-1;
-							fill(ctStatus.findColour(selectedStatusIdx+1));
-							rect(xPos,yPos,w,h);
-							xPos+=w;
-						}
-					}
-					if (mode==Mode.ModelBarsComparisonByStatus) {
-						float h=(float)spatialBinSize/statuses.length;
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							float yPos=y*spatialBinSize+statusIdx*h;
-							float xPos=x*spatialBinSize+spatialBinSize/2;
-							if (statusShow[statusIdx]) {
-								float w=constrain(map((float)abs(modelComparison[x][y][statusIdx]),0,colourScale,0,spatialBinSize),0,spatialBinSize/2);
-								if (modelComparison[x][y][statusIdx]<0)
-									w*=-1;
-								fill(ctStatus.findColour(statusIdx+1));
-								rect(xPos,yPos,w,h);
-								xPos+=w;
-							}
-						}
-					}
-					if (mode==Mode.ModelSpine) {
-						float h=(float)spatialBinSize/10f;
-						for (int j=0;j<10;j++) {
-							float yPos=y*spatialBinSize+j*h;
-							float xPos=x*spatialBinSize;
-							float sum=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-								if (statusShow[statusIdx])
-									sum+=modelSums[x][y][j][statusIdx];
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									float w=constrain(map((float)modelSums[x][y][j][statusIdx],0,sum,0,spatialBinSize),0,spatialBinSize);
-									fill(ctStatus.findColour(statusIdx+1));
-									rect(xPos,yPos,w,h);
-									xPos+=w;
-								}
-							}
-						}
-					}
-					if (mode==Mode.ModelSpineBoth) {
-						for (int both=0;both<2;both++) {
-							float h=(float)spatialBinSize/10f/2;
-							for (int j=0;j<10;j++) {
-								float yPos=y*spatialBinSize+spatialBinSize/2*both+j*h;
-								float xPos=x*spatialBinSize;
-								float sum=0;
-								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-									if (statusShow[statusIdx])
-										sum+=modelSumsBoth[x][y][j][statusIdx][both];
-								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-									if (statusShow[statusIdx]) {
-										float w=constrain(map((float)modelSumsBoth[x][y][j][statusIdx][both],0,sum,0,spatialBinSize),0,spatialBinSize);
-										fill(ctStatus.findColour(statusIdx+1));
-										rect(xPos,yPos,w,h);
-										xPos+=w;
-									}
-								}
-							}
-						}
-					}
-					if (mode==Mode.ModelSpineComparison) {
-						float h=(float)spatialBinSize/10f;
-						for (int ageIdx=0;ageIdx<10;ageIdx++) {
-							float yPos=y*spatialBinSize+ageIdx*h;
-							float xPos=x*spatialBinSize+spatialBinSize/2;
-//							if (modelComparison[x][y][ageIdx]!=0)
-//								println(modelComparison[x][y][ageIdx]);
-							float w=map(modelComparison[x][y][ageIdx],-1,1,-spatialBinSize/2,spatialBinSize/2);
-							fill(ctStatus.findColour(selectedStatusIdx+1));
-							rect(xPos,yPos,w,h);
-							xPos+=w;
-						}
-					}
-					if (mode==Mode.ModelSpineTime) {
-						float w=(float)spatialBinSize/numDays;
-						for (int day=0;day<numDays;day++) {
-							float xPos=x*spatialBinSize+day*w;
-							float yPos=y*spatialBinSize;
-							float sum=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-								if (statusShow[statusIdx])
-									sum+=modelSumsTime[x][y][day][statusIdx];
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									float h=constrain(map((float)modelSumsTime[x][y][day][statusIdx],0,sum,0,spatialBinSize),0,spatialBinSize);
-									fill(ctStatus.findColour(statusIdx+1));
-									rect(xPos,yPos,w,h);
-									yPos+=h;
-								}
-							}
-						}
-					}
-					if (mode==Mode.ModelGraph) {
+			if (absRel==AbsRel.RelativeSymb) {
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
+						int localSum=0;
+						for (int j=0;j<modelSums[x][y].length;j++)
+							for (int k=0;k<modelSums[x][y][j].length;k++)
+								localSum+=modelSums[x][y][j][k];
 						noFill();
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							if (statusShow[statusIdx]) {
-								stroke(ctStatus.findColour(statusIdx+1));
-								beginShape();
-								for (int day=0;day<numDays;day++) {
+						stroke(0,100);
+						float w=map(localSum,0,colourScale2,0,spatialBinSize);
+						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
+					}
+				}
+			}
 
-									vertex(
-											map(day,0,numDays,x*spatialBinSize,x*spatialBinSize+spatialBinSize),
-											map(modelSumsTime[x][y][day][statusIdx],0,graphMax,y*spatialBinSize,y*spatialBinSize-spatialBinSize)
-											);
-								}
-								endShape();
+			//draw grid lines
+			stroke(0,30);
+			for (int x=0;x<numCols;x++) 
+				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
+			for (int y=0;y<numRows;y++)
+				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
+
+		}
+
+		
+		
+		
+		else if (mode==Mode.ModelStatusTimeGraph && !datasetNames.isEmpty()) {
+			int currentDatasetIdx=datasetNames.indexOf(datasetName);
+			title="Population modelled status over time";
+			if (DATAFILE_RESULTS_PATHS.size()>1)
+				title+=" for "+new File(DATAFILE_RESULTS_PATHS.get(currentDatasetIdx)).getName();
+			//GRID THE DATA
+			int[][][][] modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays][statuses.length];
+			for (Record record:records) {
+
+				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
+				PVector pt=zoomPanState.getCoordToDisp(x,y);
+				int xBin=(int)(pt.x/spatialBinSize);
+				int yBin=(int)(pt.y/spatialBinSize);
+				if (record.popCounts!=null && xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
+					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
+//						if (statusShow[statusIdx])
+							for (int t=0;t<numDays;t++) 
+								for (int j=0;j<10;j++) 
+									modelSums[xBin][yBin][t][statusIdx]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx];
+
+				
+			}
+			//FIND MAX (IF NECESSARY)
+			Float colourScale=this.colourScale;
+			if (colourScale==null && absRel==AbsRel.Absolute) {
+					colourScale=-Float.MAX_VALUE;
+					for (int x=0;x<numCols;x++) {
+						for (int y=0;y<numRows;y++) {
+							for (int t=0;t<numDays;t++) { 
+								float sum=0;
+								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+									sum+=modelSums[x][y][t][statusIdx];
+								colourScale=max(colourScale,sum);
 							}
 						}
 					}
-					if (mode==Mode.ModelSpineQuintiles) {
-						float h=(float)spatialBinSize/2/5f;
-						for (int q=0;q<5;q++) {
-							float yPos=y*spatialBinSize+spatialBinSize/4+q*h;
-							float xPos=x*spatialBinSize;
-							float sum=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-								if (statusShow[statusIdx])
-									sum+=modelSumsQuintiles[x][y][q][statusIdx];
-							if (sum>0) {
-								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-									if (statusShow[statusIdx]) {
-										float w=constrain(map((float)modelSumsQuintiles[x][y][q][statusIdx],0,sum,0,spatialBinSize),0,spatialBinSize);
-										fill(ctStatus.findColour(statusIdx+1));
-										rect(xPos,yPos,w,h);
-										xPos+=w;
+					this.colourScale=colourScale;
+			}
+			//FIND MAX (IF NECESSARY) for transp/symbolsize
+			Float colourScale2=this.colourScale2;
+			if (colourScale2==null && absRel!=AbsRel.Absolute) {
+				//max pop in any square (based on visible status) but summed across all timesteps
+				colourScale2=-Float.MAX_VALUE;
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
+						float sum=0;
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+							for (int t=0;t<numDays;t++) 
+								sum+=modelSums[x][y][t][statusIdx];
+						colourScale2=max(colourScale2,sum);
+					}
+				}
+				this.colourScale2=colourScale2;
+			}
+			//DRAW
+			for (int x=0;x<numCols;x++) {
+				for (int y=0;y<numRows;y++) {
+					boolean empty=true;
+					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
+						if (statusShow[statusIdx])
+							for (int t=0;t<numDays;t++)  
+								if (modelSums[x][y][t][statusIdx]>0)
+									empty=false;
+					if (!empty) {
+						//make background white
+						fill(255);
+						noStroke();
+						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+						float w=(float)(spatialBinSize-2)/numDays;
+						//calc localsum across t
+						int localSumAcrossT=0;
+						for (int t=0;t<numDays;t++)
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
+							if (statusShow[statusIdx]) 
+								localSumAcrossT+=modelSums[x][y][t][statusIdx];
+						for (int t=0;t<numDays;t++) {
+							float xPos=bounds.x+x*spatialBinSize+1+t*w;
+							float yPos=bounds.y+y*spatialBinSize+spatialBinSize;
+							//calc localsum across for the t
+							int localSum=0;
+							int pop=0;
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+								pop+=modelSums[x][y][t][statusIdx];
+								if (statusShow[statusIdx]) 
+									localSum+=modelSums[x][y][t][statusIdx];
+
+							}
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+								if (statusShow[statusIdx]) {
+									float h=0;
+									if (absRel==AbsRel.Absolute)
+										h=constrain(map((float)modelSums[x][y][t][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
+									else
+										h=constrain(map((float)modelSums[x][y][t][statusIdx],0,localSum,0,spatialBinSize-2),0,spatialBinSize-2);
+									int transp=255;
+									if (absRel==AbsRel.RelativeFade)
+										transp=(int)constrain(map(localSumAcrossT,0,colourScale2,0,255),0,255);
+									fill(ctStatus.findColour(statusIdx+1),transp);
+									rect(xPos,yPos,w,-h);
+									if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos-h && mouseY<=yPos)
+										tooltip=modelSums[x][y][t][statusIdx]+" ("+(int)(modelSums[x][y][t][statusIdx]/(float)pop*100)+"%) people on day "+t+" are "+statuses[statusIdx];
+									yPos-=h;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (absRel==AbsRel.RelativeSymb) {
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
+						int localSumAcrossT=0;
+						for (int t=0;t<numDays;t++)
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+							localSumAcrossT+=modelSums[x][y][t][statusIdx];
+						noFill();
+						stroke(0,100);
+						float w=map(localSumAcrossT,0,colourScale2,0,spatialBinSize);
+						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
+					}
+				}
+			}
+
+			//draw grid lines
+			stroke(0,30);
+			for (int x=0;x<numCols;x++) 
+				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
+			for (int y=0;y<numRows;y++)
+				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
+
+		}
+		
+		
+		
+		else if (mode==Mode.ModelCompStatusTimeGraph && !datasetName.equals(comparisonDatasetName)) {
+			title="Comparison of two model outputs over time";
+//			if (DATAFILE_RESULTS_PATHS.size()>1)
+//				title+=" for "+new File(DATAFILE_RESULTS_PATHS.get(currentDatasetIdx)).getName();
+			//GRID THE DATA
+			int currentDatasetIdx=datasetNames.indexOf(datasetName);
+			int currentBaselineDatasetIdx=datasetNames.indexOf(comparisonDatasetName);
+			int[][] popSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize];
+			int[][][][] modelDifferences=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays][statuses.length];
+			for (Record record:records) {
+
+				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
+				PVector pt=zoomPanState.getCoordToDisp(x,y);
+				int xBin=(int)(pt.x/spatialBinSize);
+				int yBin=(int)(pt.y/spatialBinSize);
+				if (record.popCounts!=null && xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
+					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
+//						if (statusShow[statusIdx])
+							for (int t=0;t<numDays;t++) 
+								for (int j=0;j<10;j++) { 
+									modelDifferences[xBin][yBin][t][statusIdx]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx]-record.resultCounts[currentBaselineDatasetIdx][t][j][statusIdx];
+									if (t==0)//just the first stepstep so we get the population of one
+										popSums[xBin][yBin]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx];
+								}
+
+				
+			}
+			
+			//FIND MAX (IF NECESSARY)
+			Float colourScale=this.colourScale;
+			if (colourScale==null) {
+				if (absRel==AbsRel.Absolute) {
+					//use the max abs difference
+					colourScale=-Float.MAX_VALUE;
+					for (int x=0;x<numCols;x++) {
+						for (int y=0;y<numRows;y++) {
+							for (int t=0;t<numDays;t++) { 
+								float sum=0;
+								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+									sum+=abs(modelDifferences[x][y][t][statusIdx]);//use abs
+								colourScale=max(colourScale,sum);
+							}
+						}
+					}
+					this.colourScale=colourScale;
+				}
+				else {
+					//for RELATIVE, use the max difference/pop
+					colourScale=-Float.MAX_VALUE;
+					for (int x=0;x<numCols;x++) {
+						for (int y=0;y<numRows;y++) {
+							for (int t=0;t<numDays;t++) { 
+								float sum=0;
+								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
+									if (popSums[x][y]>0)
+										sum+=abs((float)modelDifferences[x][y][t][statusIdx]/popSums[x][y]);//use abs and divide by pop
+								colourScale=max(colourScale,sum);
+							}
+						}
+					}
+					this.colourScale=colourScale;
+				}
+			}
+			//FIND MAX (IF NECESSARY) for transp/symbolsize
+			Float colourScale2=this.colourScale2;
+			if (colourScale2==null && absRel!=AbsRel.Absolute) {
+				this.colourScale2=colourScale2;
+				colourScale2=-Float.MAX_VALUE;
+				for (int x=0;x<numCols;x++)
+					for (int y=0;y<numRows;y++)
+						colourScale2=max(colourScale2,popSums[x][y]);
+				this.colourScale2=colourScale2;
+			}
+			//DRAW
+			for (int x=0;x<numCols;x++) {
+				for (int y=0;y<numRows;y++) {
+					boolean empty=true;
+					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
+						if (statusShow[statusIdx])
+							for (int t=0;t<numDays;t++)  
+								if (modelDifferences[x][y][t][statusIdx]>0)
+									empty=false;
+					if (!empty) {
+						//make background white
+						fill(255);
+						noStroke();
+						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+						float w=(float)(spatialBinSize-2)/numDays;
+						for (int t=0;t<numDays;t++) {
+							float xPos=bounds.x+x*spatialBinSize+1+t*w;
+							float yPosPositive=bounds.y+y*spatialBinSize+spatialBinSize/2;
+							float yPosNegative=bounds.y+y*spatialBinSize+spatialBinSize/2;
+							//calc localsum across for the t
+							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+								if (statusShow[statusIdx]) {
+									float h=0;
+									if (absRel==AbsRel.Absolute)
+										h=map((float)abs(modelDifferences[x][y][t][statusIdx]),0,colourScale,0,spatialBinSize-2);
+									else
+										if (popSums[x][y]>0)
+											h=map(abs((float)modelDifferences[x][y][t][statusIdx]/popSums[x][y]),0,colourScale,0,spatialBinSize-2);
+									if (h>1) {
+										int transp=255;
+										if (absRel==AbsRel.RelativeFade)
+											transp=(int)constrain(map(popSums[x][y],0,colourScale2,0,255),0,255);
+										fill(ctStatus.findColour(statusIdx+1),transp);
+										if (modelDifferences[x][y][t][statusIdx]>0) {
+											rect(xPos,yPosPositive,w,-h);
+											if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosPositive-h && mouseY<yPosPositive)
+												tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) MORE people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
+											yPosPositive-=h;
+										}
+										else {
+											rect(xPos,yPosNegative,w,h);
+											if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosNegative && mouseY<yPosNegative+h)
+												tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) FEWER people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
+											yPosNegative+=h;
+										}
 									}
 								}
 							}
 						}
 					}
-					if (mode==Mode.ForceColour) {
-						fill(ctForce.findColour(map((float)forceAvgs[x][y][currentDay],0,forceMax,0,1)));
-						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-					}
-					if (mode==Mode.ForceBars) {
-						float wH=sqrt(constrain(map((float)forceAvgs[x][y][currentDay],0,forceMax,0,pow(spatialBinSize,2)),0,pow(spatialBinSize,2)));
-						fill(ctForce.findColour(0.6f));
-						rect(x*spatialBinSize+spatialBinSize/2-wH/2,y*spatialBinSize+spatialBinSize/2-wH/2,wH,wH);						
-					}
-					if (mode==Mode.ForceTime) {
-						fill(ctForce.findColour(0.6f));
-						for (int day=0;day<numDays;day++) {
-							float w=spatialBinSize/(float)numDays;
-							float h=constrain(map((float)forceAvgs[x][y][day],0,forceMax,0,spatialBinSize),0,spatialBinSize);
-							rect(x*spatialBinSize+w*day,y*spatialBinSize+spatialBinSize, w,-h);
-						}
-					}
-					if (mode==Mode.ReservoirColour) {
-						fill(ctReservoir.findColour(map((float)reservoirAvgs[x][y][currentDay],0,reservoirMax,0,1)));
-						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-					}
-					if (mode==Mode.ReservoirBars) {
-						float wH=sqrt(constrain(map((float)reservoirAvgs[x][y][currentDay],0,reservoirMax,0,pow(spatialBinSize,2)),0,pow(spatialBinSize,2)));
-						fill(ctReservoir.findColour(0.6f));
-						rect(x*spatialBinSize+spatialBinSize/2-wH/2,y*spatialBinSize+spatialBinSize/2-wH/2,wH,wH);						
-					}
-					if (mode==Mode.ReservoirTime) {
-						fill(ctReservoir.findColour(0.6f));
-						for (int day=0;day<numDays;day++) {
-							float w=spatialBinSize/(float)numDays;
-							float h=constrain(map((float)reservoirAvgs[x][y][day],0,reservoirMax,0,spatialBinSize),0,spatialBinSize);
-							rect(x*spatialBinSize+w*day,y*spatialBinSize+spatialBinSize, w,-h);
-						}
-					}
-					
 				}
 			}
-		}
+			if (absRel==AbsRel.RelativeSymb) {
+				for (int x=0;x<numCols;x++) {
+					for (int y=0;y<numRows;y++) {
+						noFill();
+						stroke(0,100);
+						float w=map(popSums[x][y],0,colourScale2,0,spatialBinSize);
+						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
+					}
+				}
+			}
 
-		stroke(0,30);
-		for (int x=0;x<demogSums.length;x++) 
-			line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
+			//draw grid lines
+			stroke(0,30);
+			for (int x=0;x<numCols;x++) 
+				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
+			for (int y=0;y<numRows;y++)
+				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
+
+		}
 		
-		for (int y=0;y<demogSums[0].length;y++)
-			line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
 		
 		if (helpScreen.getIsActive())
 			helpScreen.draw();
@@ -1091,8 +1030,9 @@ public class DemographicGridmap extends PApplet{
 			currentDay=0;
 
 		//draw legend
-		if (mode==Mode.ModelBars|| mode==Mode.ModelBarsComparison || mode==Mode.ModelSpine || mode==Mode.ModelSpineComparison || mode==Mode.ModelGraph || mode==Mode.ModelSpineQuintiles|| mode==Mode.ModelSpineTime || mode==Mode.ModelBarsComparisonByStatus || mode==Mode.ModelSpineBoth) {
-			int y=height-(statuses.length*12);
+//		if (mode==Mode.ModelBars|| mode==Mode.ModelBarsComparison || mode==Mode.ModelSpine || mode==Mode.ModelSpineComparison || mode==Mode.ModelGraph || mode==Mode.ModelSpineQuintiles|| mode==Mode.ModelSpineTime || mode==Mode.ModelBarsComparisonByStatus || mode==Mode.ModelSpineBoth) {
+		if (mode==Mode.ModelAgeStatusTimeAnim||mode==Mode.ModelStatusTimeGraph||mode==Mode.ModelCompStatusTimeGraph) {
+			int y=height-statusBarH-(statuses.length*12);
 			int legendW=0;
 			textAlign(RIGHT,TOP);
 			textSize(10);
@@ -1103,22 +1043,22 @@ public class DemographicGridmap extends PApplet{
 			noStroke();
 			rect(width-legendW,y,legendW,height-y);
 			for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-				if (mode==Mode.ModelBarsComparison||mode==Mode.ModelSpineComparison) {
-					if (statusIdx==selectedStatusIdx) {
-						fill(ctStatus.findColour(statusIdx+1));
-						rect(width-10,y,10,10);
-					}
-				}
-				else {
+//				if (mode==Mode.ModelBarsComparison||mode==Mode.ModelSpineComparison) {
+//					if (statusIdx==selectedStatusIdx) {
+//						fill(ctStatus.findColour(statusIdx+1));
+//						rect(width-10,y,10,10);
+//					}
+//				}
+//				else {
 					if (statusShow[statusIdx]) {
 						fill(ctStatus.findColour(statusIdx+1));
 						rect(width-10,y,10,10);
 					}
-				}
+//				}
 				if (mouseX>width-legendW && mouseY>y && mouseY<y+12 && mouseClicked) {
-					if (mode==Mode.ModelBarsComparison||mode==Mode.ModelSpineComparison)
-						selectedStatusIdx=statusIdx;
-					else
+//					if (mode==Mode.ModelBarsComparison||mode==Mode.ModelSpineComparison)
+//						selectedStatusIdx=statusIdx;
+//					else
 						statusShow[statusIdx]=!statusShow[statusIdx];
 				}
 				fill(80);
@@ -1140,8 +1080,9 @@ public class DemographicGridmap extends PApplet{
 			if (entry.getValue().contains(geoMouseX,geoMouseY)) {
 				fill(0,80);
 				textSize(20);
+				textLeading(20);
 				textAlign(LEFT,BOTTOM);
-				text(boundaryNames.get(entry.getKey())+"\n"+mouseOveredGridRef,0,height);
+				text(entry.getKey(),0,height-statusBarH);
 				noFill();
 			}
 			PathIterator pi=entry.getValue().getPathIterator(null);
@@ -1167,139 +1108,161 @@ public class DemographicGridmap extends PApplet{
 		textSize(30);
 		textLeading(30);
 		textAlign(LEFT,TOP);
-		String title="";
-		if (mode==Mode.DemogColour)
-			title="Population by age group (younger at top)";
-		if (mode==Mode.DemogBars)
-			title="Population of residents by age group (younger at top)";
-		if (mode==Mode.ModelBars) {
-			title="Population modelled status by age group (younger at top) for day "+currentDay;
-			if (LOAD_BASELINE && useBaseline)
-				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		}
-		if (mode==Mode.ModelBarsComparison) 
-			title="Comparison between population modelled for "+statuses[selectedStatusIdx]+" by age group (younger at top) for day "+currentDay+" from the baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		if (mode==Mode.ModelBarsComparisonByStatus)
-			title="Comparison from baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+") for day "+currentDay;
-		if (mode==Mode.ModelGraph) {
-			title="Population modelled status over time";
-			if (LOAD_BASELINE && useBaseline)
-				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		}
-		if (mode==Mode.ModelSpine) {
-			title="Population modelled status proportion by age group (younger at top) for day "+currentDay;
-			if (LOAD_BASELINE && useBaseline)
-				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		}
-		if (mode==Mode.ModelSpineComparison) 
-			title="Comparison between population modelled for "+statuses[selectedStatusIdx]+" by age group (younger at top) for day "+currentDay+" from the baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		if (mode==Mode.ModelSpineQuintiles) {
-			title="Quintiles (by proportion susceptable) of modelled status proportion for day "+currentDay;
-			if (LOAD_BASELINE && useBaseline)
-				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		}
-		if (mode==Mode.ModelSpineTime) {
-			title="Population modelled status proportion over time (left to right)";
-			if (LOAD_BASELINE && useBaseline)
-				title+=" for baseline ("+new File(DATAFILE_BASELINE_RESULTS_PATH).getName()+")";
-		}
-		if (mode==Mode.ForceColour)
-			title="Force of infection for day "+currentDay;
-		if (mode==Mode.ReservoirColour)
-			title="Environmental virus reservoir for day "+currentDay;
-		if (mode==Mode.ForceBars)
-			title="Force of infection for day "+currentDay;
-		if (mode==Mode.ReservoirBars)
-			title="Environmental virus reservoir for day "+currentDay;
-		if (mode==Mode.ForceTime)
-			title="Force of infection over time (left to right)";
-		if (mode==Mode.ReservoirTime)
-			title="Environmental virus reservoir over time (left to right)";
+
 		title+=" ("+mode.toString()+")";
 		text(title,0,0,width,height);
 		mouseClicked=false;
+		
+
+		if (!tooltip.isEmpty()) {
+			drawTooltip(tooltip,mouseX+10,mouseY+10,100);
+		}
+		
+		//timeline
+		if ((mode==Mode.ModelAgeStatusTimeAnim || mode==Mode.ModelStatusTimeGraph) && mouseY<50){
+			noStroke();
+			fill(255,200);
+			rect(0,0,width,50);
+			fill(0,100);
+			textAlign(CENTER,CENTER);
+			textSize(18);
+			stroke(0,50);
+			for (int t=1;t<numDays;t+=2) {
+				float x=map(t,0,numDays,0,width);
+				text(t+"",x,50/2);
+				line(x,0,x,50);
+			}
+		}
+		
+		//drawchangers
+		{
+			noStroke();
+			fill(255);
+			rect(0,height,width,-statusBarH);
+			fill(0);
+			int x=0;
+			datasetChanger.draw(x, height-statusBarH+3);
+			x+=datasetChanger.getWidth()+10;
+			modeChanger.draw(x, height-statusBarH+3);
+			x+=modeChanger.getWidth()+10;
+			absRelChanger.draw(x, height-statusBarH+3);
+			x+=absRelChanger.getWidth()+10;
+			if (mode==Mode.ModelCompStatusTimeGraph) {
+				x=0;
+				comparisonDatasetChanger.enable();
+				comparisonDatasetChanger.setRespondToMouse(true);
+				comparisonDatasetChanger.draw(x, height-statusBarH+20);
+				x+=comparisonDatasetChanger.getWidth()+10;
+			}
+			else {
+				comparisonDatasetChanger.disable();
+				comparisonDatasetChanger.setRespondToMouse(false);
+			}
+		}
+	}
+	
+
+	
+	private void drawTooltip(String label,int boxX, int boxY, int w) {
+		pushStyle();
+		textSize(10);
+		textLeading(11);
+		List<String> labelLines=WordWrapper.wordWrap(label, w, this);
+		int boxW=4+(int)w+4;
+		int boxH=4+(int)g.textLeading*labelLines.size()+4;
+
+		if (boxX+boxW>width)
+			boxX=width-boxW;
+		if (boxY+boxH>height)
+			boxY=height-boxH;
+		
+		stroke(200);
+		fill(255,241,167,200);
+		rect(boxX,boxY,boxW,boxH);
+
+		textAlign(LEFT,TOP);
+		fill(0);
+		int y=boxY+4;
+		for (String labelLine:labelLines) {
+			text(labelLine,boxX+4,y);
+			y+=g.textLeading;
+		}
+		popStyle();
 	}
 	
 	public void keyPressed() {
-		if (key==CODED && keyCode==LEFT) {
+		if (key==CODED && keyCode==UP) {
 			spatialBinSize--;
 			if (spatialBinSize<2)
 				spatialBinSize=2;
 		}
-		if (key==CODED && keyCode==RIGHT) {
+		if (key==CODED && keyCode==DOWN) {
 			spatialBinSize++;
 		}
-		if (key==CODED && keyCode==UP) {
+		if (key=='[') {
 			attribBinSize--;
 			if (attribBinSize<1)
 				attribBinSize=1;
 		}
-		if (key==CODED && keyCode==DOWN) {
+		if (key==']') {
 			attribBinSize++;
 			if (attribBinSize>demographicsAttribNames.length)
 				attribBinSize=demographicsAttribNames.length-1;
 		}
-		if (key=='[') {
+		if (key==CODED && keyCode==LEFT && colourScale!=null && keyEvent!=null && !keyEvent.isShiftDown()) {
 			colourScale+=colourScale/10f;
 		}
-		if (key==']') {
+		if (key==CODED && keyCode==RIGHT && colourScale!=null && keyEvent!=null && !keyEvent.isShiftDown()) {
 			colourScale-=colourScale/10f;
+		}
+		if (key==CODED && keyCode==LEFT && colourScale2!=null && keyEvent!=null && keyEvent.isShiftDown()) {
+			colourScale2+=colourScale2/10f;
+		}
+		if (key==CODED && keyCode==RIGHT && colourScale2!=null && keyEvent!=null && keyEvent.isShiftDown()) {
+			colourScale2-=colourScale2/10f;
 		}
 		if (key=='s') {
 			colourScale=null;
+			colourScale2=null;
 		}
 		if (key=='m') {
-			moveToNextDisplayableMode();
+			modeChanger.changeToNextValue();;
 		}
 		if (key=='M') {
-			moveToPrevDisplayableMode();
+			modeChanger.changeToPrevValue();
 		}
 		if (key=='a') {
 			animateThroughTime=!animateThroughTime;
 		}
+		if (key=='r')
+			zoomPan.reset();
+		if (key=='c')
+			absRelChanger.changeToNextValue();
+		if (key=='C')
+			absRelChanger.changeToPrevValue();
+		if (key=='d')
+			datasetChanger.changeToNextValue();
+		if (key=='d')
+			datasetChanger.changeToPrevValue();
 		if (key=='h') {
 			helpScreen.setIsActive(!helpScreen.getIsActive());
 		}
-		if (key=='b') {
-			useBaseline=!useBaseline;
-		}
 	
-	}
-	
-	private void moveToNextDisplayableMode() {
-		int ord=mode.ordinal();
-		do {
-			ord++;
-			if (ord>=Mode.values().length)
-				ord=0;
-			this.mode=Mode.values()[ord];
-		} while(!this.mode.ableToDisplay());
-	}
-
-	private void moveToPrevDisplayableMode() {
-		int ord=mode.ordinal();
-		do {
-			ord--;
-			if (ord<0)
-				ord=Mode.values().length-1;
-			this.mode=Mode.values()[ord];
-		} while(!this.mode.ableToDisplay());
 	}
 	
 	public void mouseClicked() {
 		mouseClicked=true;
 	}
 	
+
 	class Record{
 		int x,y;
 		short[] popCounts; //by demographicgroup
-		short[][][] resultCounts; //by time, demographicGroup, infectionType
-		short[][][] baselineCounts; //by time, demographicGroup, infectionType
-		short[] resultForce; //by time
-		short[] resultReservoir; //by time
-		short[] baselineForce; //by time
-		short[] baselineReservoir; //by time
-		String osRef;
+		short[][][][] resultCounts; //first number is the model result set... followed by time, demographicGroup, infectionType
+//		short[] resultForce; //by time
+//		short[] resultReservoir; //by time
+//		short[] baselineForce; //by time
+//		short[] baselineReservoir; //by time
 	}
-	
+
 }

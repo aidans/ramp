@@ -1,6 +1,13 @@
 # Meeting (and non-meeting) notes 
 
 
+## 13th August 2021 (meeting)
+
+### Pre-meeting
+
+Major rewrite of the application with better-designed views and controls. In particular, the comparison view is more effective (in my opinion).
+
+
 ## 29th July 2021 (meeting)
 
 ### Pre-meeting
@@ -27,7 +34,7 @@ Aidan has been experimenting with some comparison graphics.
 
 
 
-</table
+</table>
 
 
 

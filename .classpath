@@ -13,5 +13,6 @@
 	<classpathentry kind="lib" path="/Users/aidans/Documents/java_libraries/slf4j/slf4j-simple-1.7.5.jar"/>
 	<classpathentry kind="lib" path="/Users/aidans/Documents/java_libraries/commons-math3-3.6.1/commons-math3-3.6.1.jar"/>
 	<classpathentry kind="lib" path="/slippy_map/bin"/>
+	<classpathentry kind="lib" path="/menu_and_slider/bin" sourcepath="/menu_and_slider/src"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
