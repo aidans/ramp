@@ -25,7 +25,7 @@ Four views:
 
 <img src="Screenshot 2021-08-12 at 21.26.56.png" width="250"/><img src="Screenshot 2021-08-12 at 21.27.02.png" width="250"/><img src="Screenshot 2021-08-12 at 21.27.11.png" width="250"/><img src="Screenshot 2021-08-12 at 21.27.23.png" width="250"/>
 
-The *population* view shows (upside down) population pyramids. From left to right: *absolute population*, *relative* (shows age structure, locally scaled), *relative with circles* (circles are absolute total population for the grid square) and *relative with fading* (amount of fading is total population for the grid square). The latter *de-emphasises grid squares with lot population*.
+The *population* view shows (upside down) population pyramids. From left to right: *absolute population*, *relative* (shows age structure, locally scaled), *relative with circles* (circles are absolute total population for the grid square) and *relative with fading* (amount of fading is total population for the grid square). The latter *de-emphasises grid squares with low population*.
 
 #### ModelAgeStatusTimeAnim
 
@@ -45,17 +45,14 @@ The time graph version.
 
 *New* comparison version, illustrated with [the two pollution examples of `abundances_poll1.h5` and `abundances_poll2.h5`](https://github.com/aidans/ramp/blob/main/data/2021-04-30_pollution.zip). Click on images to enlarge.
 
-<table width="100%">
 
-<tr><td><img src="Screenshot 2021-08-12 at 21.46.23.png" width="250"/></td><td>Shows *absolute difference* (in numbers of people). Below the centreline is *less than*; above the centreline is *more than* over time (left to right). No difference for the first part of the period, and then clearly shows that more people are affected `abundances_poll1.h5` than `abundances_poll2.h5`. The tooltip indicates fewer susceptible (because they are infected) and also gives percentages.</td></tr>
+<img src="Screenshot 2021-08-12 at 21.46.23.png" width="250"/><img src="Screenshot 2021-08-12 at 21.46.44.png" width="250"/><img src="Screenshot 2021-08-12 at 21.47.05.png" width="250"/><img src="Screenshot 2021-08-12 at 21.47.33.png" width="250"/>
 
-<tr><td><img src="Screenshot 2021-08-12 at 21.46.44.png" width="250"/></td><td>Show differences as a *proportion* of population. Note that some of the highest proportions are where there's low population. The challenge is to show both relative and absolute (see below). Tooltip indicated 11% more exposed on day 20 than in `abundances_poll2.h5`.</td></tr>
+ - Shows *absolute difference* (in numbers of people). Below the centreline is *less than*; above the centreline is *more than* over time (left to right). No difference for the first part of the period, and then clearly shows that more people are affected `abundances_poll1.h5` than `abundances_poll2.h5`. The tooltip indicates fewer susceptible (because they are infected) and also gives percentages.
+ - Show differences as a *proportion* of population. Note that some of the highest proportions are where there's low population. The challenge is to show both relative and absolute (see below). Tooltip indicated 11% more exposed on day 20 than in `abundances_poll2.h5`.
+ - As above, but with circles indicating population.
+ - More effective version, where *data for low population areas is de-emphasised*. Tooltip shows 9% more people susceptible (because they are not infected), but the lightness indicates comparative low population.
 
-<tr><td><img src="Screenshot 2021-08-12 at 21.47.05.png" width="250"/></td><td>As above, but with circles indicating population.</td></tr>
-
-<tr><td><img src="Screenshot 2021-08-12 at 21.47.33.png" width="250"/></td><td>More effective version, where *data for low population areas is de-emphasised*. Tooltip shows 9% more people susceptible (because they are not infected), but the lightness indicates comparative low population.</td></tr>.
-
-</table>
 
 Please try before the meeting.
 
