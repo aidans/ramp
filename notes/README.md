@@ -1,7 +1,12 @@
 # Meeting (and non-meeting) notes 
 
 
-## 13th August 2021 (pre-meeting)
+## 16th August 2021 (pre-meeting)
+
+
+## 13th August 2021 (update)
+
+AS has a [new release (v1.8)] (https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.8)
 
 ### Pre-meeting
 
@@ -56,6 +61,31 @@ The time graph version.
 Small problem with is where a status flips from positive to negative, the stacking order is a bit unhelpful - see the one to the right of the tooltip. *However, this flipping is interesting!*
 
 Would be great if you could try before the meeting.
+
+
+
+### Meeting
+
+Claire ran the demo and shared the screen. We used the poll1/poll2 data as this illustrates the comparison view best, but Claire will check whether these are deterministic runs.
+
+Positive comments from CH and RR:
+ - faster and responsive
+ - tooltips for details demand useful
+ - GUI makes it easier to navigate
+ - fewer display options, so easier to navigate, absolute/relative is more systematic and the "faded" version useful
+ - excited by potential to load more than two model results into memory
+ 
+RR suggested that an advantage of the gridding approach over the council area aggregation approach is that geographical space (e.g. barriers to infection) is important and also that e.g. Highlands is not treated as a homogenous unit for policy as the island were treated differently.
+
+AS asked CH to generate some more runs and do some honest and useful analysis on them to determine something useful; e.g. determine the "best" parameters or to compare results with different interventions.
+
+We also looked at the [Glyphmap idom](https://observablehq.com/d/faee29b462a0353b) for the RAMP paper and discussed. RR has already provided comments. CH will provide some by email this week.
+
+### Actions
+
+ - CH to generate two some deterministic runs
+ - CH to generate some more runs and do some honest and useful analysis on them to determine something useful.
+ - CH to provide comments (by email) on the [Glyphmap idom](https://observablehq.com/d/faee29b462a0353b) 
 
 
 
