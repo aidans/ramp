@@ -35,7 +35,7 @@ import ucar.nc2.NetcdfFiles;
 
 public class DemographicGridmap extends PApplet{
 
-	static String APP_NAME="DemographicGridmap, v1.6 (24/02/21)";
+	static String APP_NAME="DemographicGridmap, v1.8 (16/08/21)";
 
 	static String DATAFILE_DEMOGRAPHICS_PATH;
 	static ArrayList<String> DATAFILE_RESULTS_PATHS;
@@ -43,14 +43,13 @@ public class DemographicGridmap extends PApplet{
 	static String DATAFILE_POLLUTION;
 	
 	
-	static int AGGREGATE_INPUT_M=3000;
+	static int AGGREGATE_INPUT_M=1000;
 
 	
 	ArrayList<Record> records;
 	String[] demographicsAttribNames;
 	private String[] statuses;
 	private boolean[] statusShow;
-	private int selectedStatusIdx=0;//for ModelBarComparison ONLY
 	private int numDays;
 	
 	ColourTable ctDemog,ctResult,ctStatus,ctForce,ctReservoir;
@@ -73,9 +72,9 @@ public class DemographicGridmap extends PApplet{
 	
 	enum Mode{
 		Population,
-		ModelAgeStatusTimeAnim,
-		ModelStatusTimeGraph,
-		ModelCompStatusTimeGraph,
+		ModelAgeDay,
+		ModelTime,
+		ModelComparisonTime,
 	}
 	
 	boolean mouseClicked=false;
@@ -100,6 +99,7 @@ public class DemographicGridmap extends PApplet{
 	EnumChanger<Mode> modeChanger;
 
 	static public void main(String[] args) {
+		DATAFILE_RESULTS_PATHS=new ArrayList<>();
 		for (String arg:args) {
 			String[] toks=arg.split("=");
 			if (toks[0].equalsIgnoreCase("demographics_file"))
@@ -107,11 +107,9 @@ public class DemographicGridmap extends PApplet{
 					DATAFILE_DEMOGRAPHICS_PATH=toks[1].replaceAll("\"", "");
 				}
 			if (toks[0].equalsIgnoreCase("results_file")) {
-				if (toks.length==2) {
-					if (DATAFILE_RESULTS_PATHS==null)
-						DATAFILE_RESULTS_PATHS=new ArrayList<>();
+				if (toks.length==2) 
 					DATAFILE_RESULTS_PATHS.add(toks[1].replaceAll("\"", ""));
-				}
+				
 			}
 			if (toks[0].equalsIgnoreCase("AGGREGATE_INPUT_M") && toks.length==2) {
 				AGGREGATE_INPUT_M=Integer.parseInt(toks[1]);
@@ -245,9 +243,9 @@ public class DemographicGridmap extends PApplet{
 		
 		
 		HashMap<String, Record> gridKey2Record=new HashMap<>();
-		
 		//get demographics
 		try{
+			if (DATAFILE_DEMOGRAPHICS_PATH!=null) {
 			print("Loading demographics...");
 			NetcdfFile netcdfFile = NetcdfFiles.open(DATAFILE_DEMOGRAPHICS_PATH);
 //			for (Variable variable:netcdfFile.getVariables())
@@ -317,154 +315,128 @@ public class DemographicGridmap extends PApplet{
 			}
 			println("done.");
 			netcdfFile.close();
+			}
 		}
 		catch (IOException e) {
 			println(e);
-		}
+		}			
 
 		//get results
 		try {
-			int chuckLocationSize=100000;//number of locations to import at once (depends on memory)
-			for (int resultsDataIdx=0;resultsDataIdx<DATAFILE_RESULTS_PATHS.size();resultsDataIdx++) {
-				NetcdfFile netcdfFile=null;
-				int numLocations=-1;
-				String[] locations=null;
-				print("Loading model results...");
-				netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATHS.get(resultsDataIdx));
+			if (!DATAFILE_RESULTS_PATHS.isEmpty()) {
+				int chuckLocationSize=100000;//number of locations to import at once (depends on memory)
+				for (int resultsDataIdx=0;resultsDataIdx<DATAFILE_RESULTS_PATHS.size();resultsDataIdx++) {
+					NetcdfFile netcdfFile=null;
+					int numLocations=-1;
+					String[] locations=null;
+					print("Loading model results...");
+					netcdfFile = NetcdfFiles.open(DATAFILE_RESULTS_PATHS.get(resultsDataIdx));
 
-				locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
+					locations=(String[])netcdfFile.findVariable("/abundances/grid_id").read().copyToNDJavaArray();
 
-				numDays=(int)netcdfFile.findVariable("/abundances/times").read().getSize();
-				ArrayList<String> statuses=new ArrayList<String>();
-				for (String compartment:(String[])netcdfFile.findVariable("/abundances/compartment").read().copyToNDJavaArray()) {
-					String status=compartment.replaceAll("\\d*$", "");
-					if (!statuses.contains(status))
-						statuses.add(status);
-				}
-				this.statuses=new String[statuses.size()];
-				statuses.toArray(this.statuses);
-				this.statusShow=new boolean[statuses.size()];
-				Arrays.fill(statusShow, true);
-
-				int numStatuses=statuses.size();
-				int numDemographics=10;
-				numLocations=locations.length;
-
-				int[] size=new int[]{numDays,chuckLocationSize,numStatuses*numDemographics};
-				for (int chunkOrigin=0;chunkOrigin<locations.length;chunkOrigin+=chuckLocationSize) { 
-
-					int[] origin={0,chunkOrigin,0};
-
-					int[][][] modelData=null;
-					if (chunkOrigin+size[1]>numLocations)
-						size[1]=numLocations-chunkOrigin;
-					print(chunkOrigin+size[1]+"...");
-					try {
-						modelData = (int[][][])netcdfFile.findVariable("abundances/abuns").read(origin,size).copyToNDJavaArray();
-					} catch (InvalidRangeException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					numDays=(int)netcdfFile.findVariable("/abundances/times").read().getSize();
+					ArrayList<String> statuses=new ArrayList<String>();
+					for (String compartment:(String[])netcdfFile.findVariable("/abundances/compartment").read().copyToNDJavaArray()) {
+						String status=compartment.replaceAll("\\d*$", "");
+						if (!statuses.contains(status))
+							statuses.add(status);
 					}
+					this.statuses=new String[statuses.size()];
+					statuses.toArray(this.statuses);
+					this.statusShow=new boolean[statuses.size()];
+					Arrays.fill(statusShow, true);
 
-					for (int locationIdx=chunkOrigin;locationIdx<chunkOrigin+size[1];locationIdx++) {
-						//get location
-						String gridRef=locations[locationIdx].replaceAll(" ", "");
-						String easting=gridRef.substring(2,4);
-						String northing=gridRef.substring(4,6);
-						String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
-						easting=prefix.substring(0,1)+easting+"000";
-						northing=prefix.substring(1)+northing+"000";
-						int x=Integer.parseInt(easting)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
-						int y=Integer.parseInt(northing)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
-						String gridKey=x+"-"+y;
-						Record record=gridKey2Record.get(gridKey);
-						if (record==null) {
-							record=new Record();
-							//								println("Made new");
-							gridKey2Record.put(gridKey, record);
-							records.add(record);
-							record.x=x;
-							record.y=y;
-							if (geoBounds==null)
-								geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
-							else
-								geoBounds.add(record.x,record.y);
+					int numStatuses=statuses.size();
+					int numDemographics=10;
+					numLocations=locations.length;
+
+					int[] size=new int[]{numDays,chuckLocationSize,numStatuses*numDemographics};
+					for (int chunkOrigin=0;chunkOrigin<locations.length;chunkOrigin+=chuckLocationSize) { 
+
+						int[] origin={0,chunkOrigin,0};
+
+						int[][][] modelData=null;
+						if (chunkOrigin+size[1]>numLocations)
+							size[1]=numLocations-chunkOrigin;
+						print(chunkOrigin+size[1]+"...");
+						try {
+							modelData = (int[][][])netcdfFile.findVariable("abundances/abuns").read(origin,size).copyToNDJavaArray();
+						} catch (InvalidRangeException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
 						}
-						if (record.resultCounts==null)
-							record.resultCounts=new short[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
 
-						for (int dayIdx=0;dayIdx<numDays;dayIdx++) 
-							for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) 
-								for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++)
-									record.resultCounts[resultsDataIdx][dayIdx][demographicIdx][statusIdx]+=(short)modelData[dayIdx][locationIdx-chunkOrigin][statusIdx*numDemographics+demographicIdx];
+						for (int locationIdx=chunkOrigin;locationIdx<chunkOrigin+size[1];locationIdx++) {
+							//get location
+							String gridRef=locations[locationIdx].replaceAll(" ", "");
+							String easting=gridRef.substring(2,4);
+							String northing=gridRef.substring(4,6);
+							String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
+							easting=prefix.substring(0,1)+easting+"000";
+							northing=prefix.substring(1)+northing+"000";
+							int x=Integer.parseInt(easting)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+							int y=Integer.parseInt(northing)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+							String gridKey=x+"-"+y;
+							Record record=gridKey2Record.get(gridKey);
+							if (record==null) {
+								record=new Record();
+								//								println("Made new");
+								gridKey2Record.put(gridKey, record);
+								records.add(record);
+								record.x=x;
+								record.y=y;
+								if (geoBounds==null)
+									geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
+								else
+									geoBounds.add(record.x,record.y);
+							}
+							if (record.resultCounts==null)
+								record.resultCounts=new short[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
+
+							for (int dayIdx=0;dayIdx<numDays;dayIdx++) 
+								for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) 
+									for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++)
+										record.resultCounts[resultsDataIdx][dayIdx][demographicIdx][statusIdx]+=(short)modelData[dayIdx][locationIdx-chunkOrigin][statusIdx*numDemographics+demographicIdx];
+						}
 					}
+					println("done.");
 				}
-				println("done.");
 			}
 		}
 		catch (IOException e) {
 			println(e);
 		}
+		
 
-
+		//remove locations where everything is null.
+		ArrayList<Record> records2=new ArrayList<DemographicGridmap.Record>();
+		for (Record record:records) {
+			boolean delete=true;
+			if (record.popCounts!=null)
+				for (short pop:record.popCounts) 
+					if (pop>0) {
+						delete=false;
+						break;
+					}
+			if (record.resultCounts!=null) {
+				for (short[][][] a1:record.resultCounts)
+					for (short[][] a2:a1)
+						for (short[] a3:a2)
+							for (short v:a3)
+								if (v>0) {
+									delete=false;
+									break;
+								}
+			}
+			if (!delete)
+				records2.add(record);
+		}
+		records=records2;
+		records2=null;
 		System.gc();
 	
 		long t1=System.currentTimeMillis();
 		println("Loaded data for "+records.size()+" locations (resampled to "+AGGREGATE_INPUT_M+"m) in "+(t1-t)/1000+" seconds.");
-
-	//output tsvs
-//		if (LOAD_DEMOGRAPHICS) {
-//			try {
-//				BufferedWriter bw=new BufferedWriter(new PrintWriter("demographics.tsv"));
-//				bw.write("x\ty");
-//				for(String label:demographicsAttribNames)
-//					bw.write("\t"+label);
-//				bw.write("\n");
-//				for (Record record:location2Records.values()) {
-//					bw.write(record.x+"\t"+record.y);
-//					for (short v:record.popCounts)
-//						bw.write("\t"+v);
-//					bw.write("\n");
-//				}
-//				bw.close();
-//			}
-//			catch (IOException e) {
-//
-//			}
-//		}
-
-		// resultCounts; //by time, demographicGroup, infectionType
-//		if (LOAD_OUTPUTS) {
-//			try {
-//				BufferedWriter bw=new BufferedWriter(new PrintWriter("outputs.tsv"));
-//				bw.write("x\ty");
-//				for(String label:demographicsAttribNames)
-//					bw.write("\tpop_"+label.trim());
-//				for(String status:statuses)
-//					for(int demog=0;demog<10;demog++)
-//						for(int day=0;day<numDays;day++) 
-//							bw.write("\t"+"output_"+status.trim()+"_age"+demog*10+"-"+(demog*10+9)+"_t"+day);
-//				
-//				
-//				bw.write("\n");
-//				for (Record record:location2Records.values()) {
-//					bw.write(record.x+"\t"+record.y);
-//					for (short v:record.popCounts)
-//						bw.write("\t"+v);
-//					for(int statusIdx=0; statusIdx<statuses.length;statusIdx++)
-//						for(int demog=0;demog<10;demog++)
-//							for(int day=0;day<numDays;day++) 
-//								if (record.resultCounts!=null)
-//									bw.write("\t"+record.resultCounts[day][demog][statusIdx]);
-//					bw.write("\n");
-//				}
-//				bw.close();
-//			}
-//			catch (IOException e) {
-//
-//			}
-			
-//		}
 	}
 
 	
@@ -480,8 +452,6 @@ public class DemographicGridmap extends PApplet{
 		final Mode mode=modeChanger.getValueEnum();
 		final AbsRel absRel=absRelChanger.getValueEnum();
 
-		final boolean showTooltip=false;
-		
 		background(200);
 		
 		
@@ -490,15 +460,15 @@ public class DemographicGridmap extends PApplet{
 				
 		ZoomPanState zoomPanState=zoomPan.getZoomPanState();
 		
-		int numCols=(int)(bounds.getWidth()/spatialBinSize);
-		int numRows=(int)(bounds.getHeight()/spatialBinSize);
+		int numCols=(int)(bounds.getWidth()/spatialBinSize+1);
+		int numRows=(int)(bounds.getHeight()/spatialBinSize+1);
 		
 		
 		String title="";
 
 		String tooltip="";
 		
-		if (mode==Mode.Population) {
+		if (mode==Mode.Population && demographicsAttribNames!=null) {
 			
 			title="Population of residents by age group (younger at top)";
 			//GRID THE DATA
@@ -553,35 +523,25 @@ public class DemographicGridmap extends PApplet{
 			for (int x=0;x<numCols;x++) {
 				for (int y=0;y<numRows;y++) {
 					int localSum=0;
-					boolean empty=true;
+					//make background white
+					fill(255);
+					noStroke();
+					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+					//draw glyphs
 					for (int j=0;j<demogSums[x][y].length;j++) {
-						if (demogSums[x][y][j]>localSum)
-							localSum=demogSums[x][y][j];
-						if (demogSums[x][y][j]>0)
-							empty=false;
-					}
-					if (!empty) {
-						//make background white
-						fill(255);
-						noStroke();
-						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-						//draw glyphs
-						for (int j=0;j<demogSums[x][y].length;j++) {
-							float w;
-							if (absRel==AbsRel.Absolute) 
-								w=constrain(map((float)demogSums[x][y][j],0,colourScale,0,spatialBinSize-2),1,spatialBinSize-2);
-							else
-								w=constrain(map((float)demogSums[x][y][j],0,localSum,0,spatialBinSize-2),1,spatialBinSize-2);
-							int transp=255;
-							if (absRel==AbsRel.RelativeFade)
-								transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
-							fill(ctDemog.findColour(0.6f),transp);
-							Rectangle2D r=new Rectangle.Float(x*spatialBinSize+spatialBinSize/2-w/2,y*spatialBinSize+1+j*((float)(spatialBinSize-2)/demogSums[x][y].length),w,((float)(spatialBinSize-2)/demogSums[x][y].length));
-							rect((float)r.getX(),(float)r.getY(),(float)r.getWidth(),(float)r.getHeight());
-							if (r.contains(mouseX,mouseY))
-								tooltip=demogSums[x][y][j]+" people";
-							
-						}
+						float w;
+						if (absRel==AbsRel.Absolute) 
+							w=constrain(map((float)demogSums[x][y][j],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
+						else
+							w=constrain(map((float)demogSums[x][y][j],0,localSum,0,spatialBinSize-2),0,spatialBinSize-2);
+						int transp=255;
+						if (absRel==AbsRel.RelativeFade)
+							transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
+						fill(ctDemog.findColour(0.6f),transp);
+						Rectangle2D r=new Rectangle.Float(x*spatialBinSize+spatialBinSize/2-w/2,y*spatialBinSize+1+j*((float)(spatialBinSize-2)/demogSums[x][y].length),w,((float)(spatialBinSize-2)/demogSums[x][y].length));
+						rect((float)r.getX(),(float)r.getY(),(float)r.getWidth(),(float)r.getHeight());
+						if (r.contains(mouseX,mouseY))
+							tooltip=demogSums[x][y][j]+" people";
 					}
 				}
 			}
@@ -613,13 +573,12 @@ public class DemographicGridmap extends PApplet{
 		
 		
 		
-		else if (mode==Mode.ModelAgeStatusTimeAnim && !datasetNames.isEmpty()) {
+		else if (mode==Mode.ModelAgeDay && !DATAFILE_RESULTS_PATHS.isEmpty() && !datasetNames.isEmpty()) {
 			int currentDatasetIdx=datasetNames.indexOf(datasetName);
-			title="Population modelled status by age group (younger at top) for day "+currentDay;
-			if (DATAFILE_RESULTS_PATHS.size()>1)
-				title+=" for "+new File(DATAFILE_RESULTS_PATHS.get(currentDatasetIdx)).getName();
+			title="Model results by age-band (younger at top) for day "+currentDay;
+				title+=" for "+datasetName;
 			//GRID THE DATA
-			int[][][][] modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][10][statuses.length];
+			int[][][][] modelSums=new int[numCols][numRows][10][statuses.length];
 			for (Record record:records) {
 
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
@@ -627,7 +586,7 @@ public class DemographicGridmap extends PApplet{
 				PVector pt=zoomPanState.getCoordToDisp(x,y);
 				int xBin=(int)(pt.x/spatialBinSize);
 				int yBin=(int)(pt.y/spatialBinSize);
-				if (record.popCounts!=null && xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows) {
+				if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows) {
 					for (int j=0;j<10;j++) 
 						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
 //							if (statusShow[statusIdx])
@@ -671,42 +630,37 @@ public class DemographicGridmap extends PApplet{
 			for (int x=0;x<numCols;x++) {
 				for (int y=0;y<numRows;y++) {
 					int localSum=0;
-					boolean empty=true;
 					for (int j=0;j<modelSums[x][y].length;j++)
 						for (int k=0;k<modelSums[x][y][j].length;k++) {
 							localSum+=modelSums[x][y][j][k];
-							if (modelSums[x][y][j][k]>0)
-								empty=false;
 						}
-					if (!empty) {
-						//make background white
-						fill(255);
-						noStroke();
-						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-						float h=(float)spatialBinSize/10f;
-						for (int j=0;j<10;j++) {
-							float xPos=bounds.x+x*spatialBinSize+1;
-							float yPos=bounds.y+y*spatialBinSize+1+j*h;
-							int sum=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
-								sum+=modelSums[x][y][j][statusIdx];
+					//make background white
+					fill(255);
+					noStroke();
+					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+					float h=(float)spatialBinSize/10f;
+					for (int j=0;j<10;j++) {
+						float xPos=bounds.x+x*spatialBinSize+1;
+						float yPos=bounds.y+y*spatialBinSize+1+j*h;
+						int sum=0;
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
+							sum+=modelSums[x][y][j][statusIdx];
 
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									float w;
-									if (absRel==AbsRel.Absolute)
-										w=constrain(map((float)modelSums[x][y][j][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
-									else
-										w=constrain(map((float)modelSums[x][y][j][statusIdx],0,sum,0,spatialBinSize-2),0,spatialBinSize-2);
-									int transp=255;
-									if (absRel==AbsRel.RelativeFade)
-										transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
-									fill(ctStatus.findColour(statusIdx+1),transp);
-									rect(xPos,yPos,w,h);
-									if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos && mouseY<yPos+h)
-										tooltip=modelSums[x][y][j][statusIdx]+" ("+(int)(modelSums[x][y][j][statusIdx]/(float)sum*100)+"%) people aged "+(j*10)+"-"+((j+1)*10-1)+" are "+statuses[statusIdx];
-									xPos+=w;
-								}
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+							if (statusShow[statusIdx]) {
+								float w;
+								if (absRel==AbsRel.Absolute)
+									w=constrain(map((float)modelSums[x][y][j][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
+								else
+									w=constrain(map((float)modelSums[x][y][j][statusIdx],0,sum,0,spatialBinSize-2),0,spatialBinSize-2);
+								int transp=255;
+								if (absRel==AbsRel.RelativeFade)
+									transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
+								fill(ctStatus.findColour(statusIdx+1),transp);
+								rect(xPos,yPos,w,h);
+								if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos && mouseY<yPos+h)
+									tooltip=modelSums[x][y][j][statusIdx]+" ("+(int)(modelSums[x][y][j][statusIdx]/(float)sum*100)+"%) people aged "+(j*10)+"-"+((j+1)*10-1)+" are "+statuses[statusIdx];
+								xPos+=w;
 							}
 						}
 					}
@@ -739,13 +693,12 @@ public class DemographicGridmap extends PApplet{
 		
 		
 		
-		else if (mode==Mode.ModelStatusTimeGraph && !datasetNames.isEmpty()) {
+		else if (mode==Mode.ModelTime  && !DATAFILE_RESULTS_PATHS.isEmpty() && !datasetNames.isEmpty()) {
 			int currentDatasetIdx=datasetNames.indexOf(datasetName);
-			title="Population modelled status over time";
-			if (DATAFILE_RESULTS_PATHS.size()>1)
-				title+=" for "+new File(DATAFILE_RESULTS_PATHS.get(currentDatasetIdx)).getName();
+			title="Model results over time";
+				title+=" for "+datasetName;
 			//GRID THE DATA
-			int[][][][] modelSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays][statuses.length];
+			int[][][][] modelSums=new int[numCols][numRows][numDays][statuses.length];
 			for (Record record:records) {
 
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
@@ -753,7 +706,7 @@ public class DemographicGridmap extends PApplet{
 				PVector pt=zoomPanState.getCoordToDisp(x,y);
 				int xBin=(int)(pt.x/spatialBinSize);
 				int yBin=(int)(pt.y/spatialBinSize);
-				if (record.popCounts!=null && xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
+				if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
 					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
 //						if (statusShow[statusIdx])
 							for (int t=0;t<numDays;t++) 
@@ -797,52 +750,44 @@ public class DemographicGridmap extends PApplet{
 			//DRAW
 			for (int x=0;x<numCols;x++) {
 				for (int y=0;y<numRows;y++) {
-					boolean empty=true;
-					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-						if (statusShow[statusIdx])
-							for (int t=0;t<numDays;t++)  
-								if (modelSums[x][y][t][statusIdx]>0)
-									empty=false;
-					if (!empty) {
-						//make background white
-						fill(255);
-						noStroke();
-						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-						float w=(float)(spatialBinSize-2)/numDays;
-						//calc localsum across t
-						int localSumAcrossT=0;
-						for (int t=0;t<numDays;t++)
+					//make background white
+					fill(255);
+					noStroke();
+					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+					float w=(float)(spatialBinSize-2)/numDays;
+					//calc localsum across t
+					int localSumAcrossT=0;
+					for (int t=0;t<numDays;t++)
 						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
 							if (statusShow[statusIdx]) 
 								localSumAcrossT+=modelSums[x][y][t][statusIdx];
-						for (int t=0;t<numDays;t++) {
-							float xPos=bounds.x+x*spatialBinSize+1+t*w;
-							float yPos=bounds.y+y*spatialBinSize+spatialBinSize;
-							//calc localsum across for the t
-							int localSum=0;
-							int pop=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								pop+=modelSums[x][y][t][statusIdx];
-								if (statusShow[statusIdx]) 
-									localSum+=modelSums[x][y][t][statusIdx];
+					for (int t=0;t<numDays;t++) {
+						float xPos=bounds.x+x*spatialBinSize+1+t*w;
+						float yPos=bounds.y+y*spatialBinSize+spatialBinSize;
+						//calc localsum across for the t
+						int localSum=0;
+						int pop=0;
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+							pop+=modelSums[x][y][t][statusIdx];
+							if (statusShow[statusIdx]) 
+								localSum+=modelSums[x][y][t][statusIdx];
 
-							}
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									float h=0;
-									if (absRel==AbsRel.Absolute)
-										h=constrain(map((float)modelSums[x][y][t][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
-									else
-										h=constrain(map((float)modelSums[x][y][t][statusIdx],0,localSum,0,spatialBinSize-2),0,spatialBinSize-2);
-									int transp=255;
-									if (absRel==AbsRel.RelativeFade)
-										transp=(int)constrain(map(localSumAcrossT,0,colourScale2,0,255),0,255);
-									fill(ctStatus.findColour(statusIdx+1),transp);
-									rect(xPos,yPos,w,-h);
-									if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos-h && mouseY<=yPos)
-										tooltip=modelSums[x][y][t][statusIdx]+" ("+(int)(modelSums[x][y][t][statusIdx]/(float)pop*100)+"%) people on day "+t+" are "+statuses[statusIdx];
-									yPos-=h;
-								}
+						}
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+							if (statusShow[statusIdx]) {
+								float h=0;
+								if (absRel==AbsRel.Absolute)
+									h=constrain(map((float)modelSums[x][y][t][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
+								else
+									h=constrain(map((float)modelSums[x][y][t][statusIdx],0,localSum,0,spatialBinSize-2),0,spatialBinSize-2);
+								int transp=255;
+								if (absRel==AbsRel.RelativeFade)
+									transp=(int)constrain(map(localSumAcrossT,0,colourScale2,0,255),0,255);
+								fill(ctStatus.findColour(statusIdx+1),transp);
+								rect(xPos,yPos,w,-h);
+								if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos-h && mouseY<=yPos)
+									tooltip=modelSums[x][y][t][statusIdx]+" ("+(int)(modelSums[x][y][t][statusIdx]/(float)pop*100)+"%) people on day "+t+" are "+statuses[statusIdx];
+								yPos-=h;
 							}
 						}
 					}
@@ -874,15 +819,14 @@ public class DemographicGridmap extends PApplet{
 		
 		
 		
-		else if (mode==Mode.ModelCompStatusTimeGraph && !datasetName.equals(comparisonDatasetName)) {
-			title="Comparison of two model outputs over time";
-//			if (DATAFILE_RESULTS_PATHS.size()>1)
-//				title+=" for "+new File(DATAFILE_RESULTS_PATHS.get(currentDatasetIdx)).getName();
+		else if (mode==Mode.ModelComparisonTime && !DATAFILE_RESULTS_PATHS.isEmpty() && !datasetName.equals(comparisonDatasetName)) {
+			title="Comparison of two model results over time";
+				title+=" for "+datasetName;
 			//GRID THE DATA
 			int currentDatasetIdx=datasetNames.indexOf(datasetName);
 			int currentBaselineDatasetIdx=datasetNames.indexOf(comparisonDatasetName);
-			int[][] popSums=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize];
-			int[][][][] modelDifferences=new int[(int)(bounds.getWidth()/spatialBinSize)][(int)bounds.getHeight()/spatialBinSize][numDays][statuses.length];
+			int[][] popSums=new int[numCols][numRows];
+			int[][][][] modelDifferences=new int[numCols][numRows][numDays][statuses.length];
 			for (Record record:records) {
 
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
@@ -890,7 +834,7 @@ public class DemographicGridmap extends PApplet{
 				PVector pt=zoomPanState.getCoordToDisp(x,y);
 				int xBin=(int)(pt.x/spatialBinSize);
 				int yBin=(int)(pt.y/spatialBinSize);
-				if (record.popCounts!=null && xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
+				if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
 					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
 //						if (statusShow[statusIdx])
 							for (int t=0;t<numDays;t++) 
@@ -951,48 +895,40 @@ public class DemographicGridmap extends PApplet{
 			//DRAW
 			for (int x=0;x<numCols;x++) {
 				for (int y=0;y<numRows;y++) {
-					boolean empty=true;
-					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-						if (statusShow[statusIdx])
-							for (int t=0;t<numDays;t++)  
-								if (modelDifferences[x][y][t][statusIdx]>0)
-									empty=false;
-					if (!empty) {
-						//make background white
-						fill(255);
-						noStroke();
-						rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-						float w=(float)(spatialBinSize-2)/numDays;
-						for (int t=0;t<numDays;t++) {
-							float xPos=bounds.x+x*spatialBinSize+1+t*w;
-							float yPosPositive=bounds.y+y*spatialBinSize+spatialBinSize/2;
-							float yPosNegative=bounds.y+y*spatialBinSize+spatialBinSize/2;
-							//calc localsum across for the t
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-								if (statusShow[statusIdx]) {
-									float h=0;
-									if (absRel==AbsRel.Absolute)
-										h=map((float)abs(modelDifferences[x][y][t][statusIdx]),0,colourScale,0,spatialBinSize-2);
-									else
-										if (popSums[x][y]>0)
-											h=map(abs((float)modelDifferences[x][y][t][statusIdx]/popSums[x][y]),0,colourScale,0,spatialBinSize-2);
-									if (h>1) {
-										int transp=255;
-										if (absRel==AbsRel.RelativeFade)
-											transp=(int)constrain(map(popSums[x][y],0,colourScale2,0,255),0,255);
-										fill(ctStatus.findColour(statusIdx+1),transp);
-										if (modelDifferences[x][y][t][statusIdx]>0) {
-											rect(xPos,yPosPositive,w,-h);
-											if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosPositive-h && mouseY<yPosPositive)
-												tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) MORE people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
-											yPosPositive-=h;
-										}
-										else {
-											rect(xPos,yPosNegative,w,h);
-											if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosNegative && mouseY<yPosNegative+h)
-												tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) FEWER people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
-											yPosNegative+=h;
-										}
+					//make background white
+					fill(255);
+					noStroke();
+					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
+					float w=(float)(spatialBinSize-2)/numDays;
+					for (int t=0;t<numDays;t++) {
+						float xPos=bounds.x+x*spatialBinSize+1+t*w;
+						float yPosPositive=bounds.y+y*spatialBinSize+spatialBinSize/2;
+						float yPosNegative=bounds.y+y*spatialBinSize+spatialBinSize/2;
+						//calc localsum across for the t
+						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
+							if (statusShow[statusIdx]) {
+								float h=0;
+								if (absRel==AbsRel.Absolute)
+									h=map((float)abs(modelDifferences[x][y][t][statusIdx]),0,colourScale,0,spatialBinSize-2);
+								else
+									if (popSums[x][y]>0)
+										h=map(abs((float)modelDifferences[x][y][t][statusIdx]/popSums[x][y]),0,colourScale,0,spatialBinSize-2);
+								if (h>1) {
+									int transp=255;
+									if (absRel==AbsRel.RelativeFade)
+										transp=(int)constrain(map(popSums[x][y],0,colourScale2,0,255),0,255);
+									fill(ctStatus.findColour(statusIdx+1),transp);
+									if (modelDifferences[x][y][t][statusIdx]>0) {
+										rect(xPos,yPosPositive,w,-h);
+										if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosPositive-h && mouseY<yPosPositive)
+											tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) MORE people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
+										yPosPositive-=h;
+									}
+									else {
+										rect(xPos,yPosNegative,w,h);
+										if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosNegative && mouseY<yPosNegative+h)
+											tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) FEWER people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
+										yPosNegative+=h;
 									}
 								}
 							}
@@ -1031,7 +967,7 @@ public class DemographicGridmap extends PApplet{
 
 		//draw legend
 //		if (mode==Mode.ModelBars|| mode==Mode.ModelBarsComparison || mode==Mode.ModelSpine || mode==Mode.ModelSpineComparison || mode==Mode.ModelGraph || mode==Mode.ModelSpineQuintiles|| mode==Mode.ModelSpineTime || mode==Mode.ModelBarsComparisonByStatus || mode==Mode.ModelSpineBoth) {
-		if (mode==Mode.ModelAgeStatusTimeAnim||mode==Mode.ModelStatusTimeGraph||mode==Mode.ModelCompStatusTimeGraph) {
+		if (!DATAFILE_RESULTS_PATHS.isEmpty() && (mode==Mode.ModelAgeDay||mode==Mode.ModelTime||mode==Mode.ModelComparisonTime)) {
 			int y=height-statusBarH-(statuses.length*12);
 			int legendW=0;
 			textAlign(RIGHT,TOP);
@@ -1119,7 +1055,7 @@ public class DemographicGridmap extends PApplet{
 		}
 		
 		//timeline
-		if ((mode==Mode.ModelAgeStatusTimeAnim || mode==Mode.ModelStatusTimeGraph) && mouseY<50){
+		if ((mode==Mode.ModelAgeDay || mode==Mode.ModelTime) && mouseY<50){
 			noStroke();
 			fill(255,200);
 			rect(0,0,width,50);
@@ -1141,22 +1077,28 @@ public class DemographicGridmap extends PApplet{
 			rect(0,height,width,-statusBarH);
 			fill(0);
 			int x=0;
-			datasetChanger.draw(x, height-statusBarH+3);
-			x+=datasetChanger.getWidth()+10;
 			modeChanger.draw(x, height-statusBarH+3);
 			x+=modeChanger.getWidth()+10;
 			absRelChanger.draw(x, height-statusBarH+3);
 			x+=absRelChanger.getWidth()+10;
-			if (mode==Mode.ModelCompStatusTimeGraph) {
-				x=0;
-				comparisonDatasetChanger.enable();
-				comparisonDatasetChanger.setRespondToMouse(true);
-				comparisonDatasetChanger.draw(x, height-statusBarH+20);
-				x+=comparisonDatasetChanger.getWidth()+10;
+			if (mode!=Mode.Population) {
+				datasetChanger.enable();
+				datasetChanger.setRespondToMouse(true);
+				datasetChanger.draw(x, height-statusBarH+3);
+				if (mode==Mode.ModelComparisonTime) {
+					comparisonDatasetChanger.enable();
+					comparisonDatasetChanger.setRespondToMouse(true);
+					comparisonDatasetChanger.draw(x, height-statusBarH+20);
+					x+=comparisonDatasetChanger.getWidth()+10;
+				}
+				else {
+					comparisonDatasetChanger.disable();
+					comparisonDatasetChanger.setRespondToMouse(false);
+				}
 			}
 			else {
-				comparisonDatasetChanger.disable();
-				comparisonDatasetChanger.setRespondToMouse(false);
+				datasetChanger.disable();
+				datasetChanger.setRespondToMouse(false);
 			}
 		}
 	}
