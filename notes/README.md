@@ -3,10 +3,11 @@
 
 ## 16th August 2021 (pre-meeting)
 
+AS has a [new release (v1.8)] (https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.8)
+
 
 ## 13th August 2021 (update)
 
-AS has a [new release (v1.8)] (https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.8)
 
 ### Pre-meeting
 
