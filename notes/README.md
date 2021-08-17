@@ -7,7 +7,7 @@ AS has a [new release (v1.8)] (https://github.com/aidans/ramp/releases/tag/RAMP_
 
 As an aside, a nice example of the a relative population view showing the significantly younger population in Central Edinburgh and Glasgow compared to elsewhere.
 
-<img src="Screenshot 2021-08-17 at 10.30.47.png" width="500"/><img src="Screenshot 2021-08-12 at 21.27.02.png" width="250"/>
+<img src="Screenshot 2021-08-17 at 10.30.47.png" width="500"/>
 
 ## 13th August 2021 (update)
 
