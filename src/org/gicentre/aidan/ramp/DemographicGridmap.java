@@ -523,6 +523,9 @@ public class DemographicGridmap extends PApplet{
 			for (int x=0;x<numCols;x++) {
 				for (int y=0;y<numRows;y++) {
 					int localSum=0;
+					for (int j=0;j<demographicsAttribNames.length/attribBinSize;j++)
+						if (demogSums[x][y][j]>localSum)
+							localSum=demogSums[x][y][j];
 					//make background white
 					fill(255);
 					noStroke();
