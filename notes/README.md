@@ -1,7 +1,7 @@
 # Meeting (and non-meeting) notes 
 
 
-## 16th August 2021 (pre-meeting)
+## 16th August 2021 (update)
 
 AS has a [new release (v1.8)] (https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.8)
 
@@ -9,7 +9,7 @@ As an aside, a nice example of the a relative population view showing the signif
 
 <img src="Screenshot 2021-08-17 at 10.30.47.png" width="500"/>
 
-## 13th August 2021 (update)
+## 13th August 2021 (meeting)
 
 
 ### Pre-meeting
