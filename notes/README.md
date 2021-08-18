@@ -95,10 +95,10 @@ CH - Really impressed with the new layout, interactivity and loading times of th
 
 ### Actions
 
- - [] CH to generate two some deterministic runs
- - [] CH to generate some more runs and do some honest and useful analysis on them to determine something useful.
+ - [ ] CH to generate two some deterministic runs
+ - [ ] CH to generate some more runs and do some honest and useful analysis on them to determine something useful.
  - [X] CH to provide comments (by email) on the [Glyphmap idom](https://observablehq.com/d/faee29b462a0353b) 
- - [] CH to look at titles of different modes.
+ - [ ] CH to look at titles of different modes.
 
 
 
