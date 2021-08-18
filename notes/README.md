@@ -1,5 +1,10 @@
 # Meeting (and non-meeting) notes 
 
+## 20th August 2021 (meeting)
+
+### Pre-meeting
+
+CH - Provided feedback on the Glyphmap Idiom and working through adding in more testing for the pollution runs, so that we can verify expected behaviour from the model. A few issues so far with the test suite, but once this has been done, I will explore a few more runs, particularly with a higher force of infection and greater differences between the two runs for visualising. 
 
 ## 16th August 2021 (update)
 
@@ -8,6 +13,7 @@ AS has a [new release (v1.8)] (https://github.com/aidans/ramp/releases/tag/RAMP_
 As an aside, a nice example of the a relative population view showing the significantly younger population in Central Edinburgh and Glasgow compared to elsewhere.
 
 <img src="Screenshot 2021-08-17 at 10.30.47.png" width="500"/>
+
 
 ## 13th August 2021 (meeting)
 
@@ -85,11 +91,14 @@ AS asked CH to generate some more runs and do some honest and useful analysis on
 
 We also looked at the [Glyphmap idom](https://observablehq.com/d/faee29b462a0353b) for the RAMP paper and discussed. RR has already provided comments. CH will provide some by email this week.
 
+CH - Really impressed with the new layout, interactivity and loading times of the visualisation! It's a lot easier to tell what we are looking at, although perhaps still need to describe these modes more clearly. 
+
 ### Actions
 
- - CH to generate two some deterministic runs
- - CH to generate some more runs and do some honest and useful analysis on them to determine something useful.
- - CH to provide comments (by email) on the [Glyphmap idom](https://observablehq.com/d/faee29b462a0353b) 
+ - [] CH to generate two some deterministic runs
+ - [] CH to generate some more runs and do some honest and useful analysis on them to determine something useful.
+ - [X] CH to provide comments (by email) on the [Glyphmap idom](https://observablehq.com/d/faee29b462a0353b) 
+ - [] CH to look at titles of different modes.
 
 
 
@@ -188,6 +197,8 @@ We noted that
  - people die very quickly
  - model perhaps not infectious enough to get into more rural areas.
 
+CH - we must also make sure to delineate between what we would expect from a deterministic and stochastic run. In the deterministic version, infections are seeded to a pre-determined set of locations of high population densities and commuter spread is also a pre-determined list. Infection may not be taking off in rural areas because the probabilities of this happening are small, which can still randomly spurt infections in a stochastic model, but not in the deterministic version. Deterministic runs are useful for comparison, but we should be careful when interpreting model behaviour.
+
 
 ## 16th July 2021 (meeting)
 
@@ -230,7 +241,7 @@ CH: This was a useful exercise to sense check the latest version of the model. O
 
 ### Next steps
 
- - [ ] CH to run deterministic versions - and then try them out with the [latest release](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.6)
+ - [X] CH to run deterministic versions - and then try them out with the [latest release](https://github.com/aidans/ramp/releases/tag/RAMP_DemographicGridmap-v1.6)
  - [ ] AS to do a comparison view by demographic for a single infection category.
  - [ ] AS to do a temporal for a single infection category.
  - [ ] AS to add the [pollution data](https://data.scrc.uk/object/41176)
