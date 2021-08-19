@@ -46,7 +46,8 @@ public class DemographicGridmap extends PApplet{
 	static int AGGREGATE_INPUT_M=1000;
 
 	
-	ArrayList<Record> records;
+	ArrayList<Record> gridRecords;
+	ArrayList<Record> areaRecords;
 	String[] demographicsAttribNames;
 	private String[] statuses;
 	private boolean[] statusShow;
@@ -66,7 +67,6 @@ public class DemographicGridmap extends PApplet{
 	Float colourScale=null;
 	Float colourScale2=null;
 	
-	float[] minPopCounts,maxPopCounts;
 	
 	HashMap<String, Path2D> boundaries;
 	
@@ -232,7 +232,7 @@ public class DemographicGridmap extends PApplet{
 		}
 		
 		long t=System.currentTimeMillis();
-		records=new ArrayList<Record>();
+		gridRecords=new ArrayList<Record>();
 
 		Path2D[] shapes=ShpUtils.getShapes("data/scotland_laulevel1_2011/scotland_laulevel1_2011.shp");
 		String[] shapeNames=ShpUtils.getAttribsAsStrings("data/scotland_laulevel1_2011/scotland_laulevel1_2011.shp","name");
@@ -267,10 +267,6 @@ public class DemographicGridmap extends PApplet{
 				demographicsAttribNames[i]=new String(demographicsAttribNames1[i]);
 			double[][] values=(double[][])netcdfFile.findVariable("/grid_area/age/persons/array").read().copyToNDJavaArray();
 
-			minPopCounts=new float[demographicsAttribNames.length];
-			Arrays.fill(minPopCounts,Float.MAX_VALUE);
-			maxPopCounts=new float[demographicsAttribNames.length];
-			Arrays.fill(maxPopCounts,-Float.MAX_VALUE);
 
 			for (int i=0;i<locations.length;i++) {
 
@@ -296,7 +292,7 @@ public class DemographicGridmap extends PApplet{
 					if (record==null) {
 						record=new Record();
 						gridKey2Record.put(gridKey, record);
-						records.add(record);
+						gridRecords.add(record);
 						record.x=x;
 						record.y=y;
 						if (geoBounds==null)
@@ -306,16 +302,15 @@ public class DemographicGridmap extends PApplet{
 					}
 					if (record.popCounts==null)
 						record.popCounts=new short[demographicsAttribNames.length];
-					for (int j=0;j<demographicsAttribNames.length;j++) {
+					for (int j=0;j<demographicsAttribNames.length;j++) 
 						record.popCounts[j]+=(short)values[j][i];
-						minPopCounts[j]=min(minPopCounts[j],record.popCounts[j]);
-						maxPopCounts[j]=max(maxPopCounts[j],record.popCounts[j]);
-					}
+					
 				}
 			}
 			println("done.");
 			netcdfFile.close();
 			}
+			
 		}
 		catch (IOException e) {
 			println(e);
@@ -382,7 +377,7 @@ public class DemographicGridmap extends PApplet{
 								record=new Record();
 								//								println("Made new");
 								gridKey2Record.put(gridKey, record);
-								records.add(record);
+								gridRecords.add(record);
 								record.x=x;
 								record.y=y;
 								if (geoBounds==null)
@@ -410,7 +405,7 @@ public class DemographicGridmap extends PApplet{
 
 		//remove locations where everything is null.
 		ArrayList<Record> records2=new ArrayList<DemographicGridmap.Record>();
-		for (Record record:records) {
+		for (Record record:gridRecords) {
 			boolean delete=true;
 			if (record.popCounts!=null)
 				for (short pop:record.popCounts) 
@@ -431,12 +426,52 @@ public class DemographicGridmap extends PApplet{
 			if (!delete)
 				records2.add(record);
 		}
-		records=records2;
+		gridRecords=records2;
 		records2=null;
+		
+		//AGGREGATE RECORDS BY AREA
+		{
+			System.out.print("Aggregating by area...");
+			HashMap<String, Record> areaKey2Record=new HashMap<>();
+			for (Record gridRecord:gridRecords) {
+				String areaKey=null;
+				for (Entry<String,Path2D> entry: boundaries.entrySet()) {
+					if (entry.getValue().contains(gridRecord.x,gridRecord.y)) {
+						areaKey=entry.getKey();
+						break;
+					}
+				}
+				if (areaKey!=null) {
+					Record areaRecord=areaKey2Record.get(areaKey);
+					if (areaRecord==null) {
+						areaRecord=new Record();
+						areaRecord.x=(int)boundaries.get(areaKey).getBounds().getCenterX();
+						areaRecord.x=(int)boundaries.get(areaKey).getBounds().getCenterY();
+						if (gridRecord.popCounts!=null) 
+							areaRecord.popCounts=new short[gridRecord.popCounts.length];
+						if (gridRecord.resultCounts!=null) 
+							areaRecord.resultCounts=new short[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
+						areaKey2Record.put(areaKey, areaRecord);
+					}
+					if (gridRecord.popCounts!=null)
+						for (int i=0;i<demographicsAttribNames.length;i++) 
+							areaRecord.popCounts[i]+=gridRecord.popCounts[i];
+					if (gridRecord.resultCounts!=null)
+						for (int i=0;i<gridRecord.resultCounts.length;i++) 
+							for (int j=0;j<gridRecord.resultCounts[0].length;j++) 
+								for (int k=0;k<gridRecord.resultCounts[0][0].length;k++) 
+									for (int l=0;l<gridRecord.resultCounts[0][0][0].length;l++)
+										areaRecord.resultCounts[i][j][k][l]+=gridRecord.resultCounts[i][j][k][l];
+				}
+			}
+			System.out.println("done.");
+		}
+		
+		
 		System.gc();
 	
 		long t1=System.currentTimeMillis();
-		println("Loaded data for "+records.size()+" locations (resampled to "+AGGREGATE_INPUT_M+"m) in "+(t1-t)/1000+" seconds.");
+		println("Loaded data for "+gridRecords.size()+" locations (resampled to "+AGGREGATE_INPUT_M+"m) in "+(t1-t)/1000+" seconds.");
 	}
 
 	
@@ -473,7 +508,7 @@ public class DemographicGridmap extends PApplet{
 			title="Population of residents by age group (younger at top)";
 			//GRID THE DATA
 			int[][][] demogSums=new int[numCols][numRows][demographicsAttribNames.length/attribBinSize];
-			for (Record record:records) {
+			for (Record record:gridRecords) {
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
 				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
 				PVector pt=zoomPanState.getCoordToDisp(x,y);
@@ -582,7 +617,7 @@ public class DemographicGridmap extends PApplet{
 				title+=" for "+datasetName;
 			//GRID THE DATA
 			int[][][][] modelSums=new int[numCols][numRows][10][statuses.length];
-			for (Record record:records) {
+			for (Record record:gridRecords) {
 
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
 				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
@@ -702,7 +737,7 @@ public class DemographicGridmap extends PApplet{
 				title+=" for "+datasetName;
 			//GRID THE DATA
 			int[][][][] modelSums=new int[numCols][numRows][numDays][statuses.length];
-			for (Record record:records) {
+			for (Record record:gridRecords) {
 
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
 				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
@@ -830,7 +865,7 @@ public class DemographicGridmap extends PApplet{
 			int currentBaselineDatasetIdx=datasetNames.indexOf(comparisonDatasetName);
 			int[][] popSums=new int[numCols][numRows];
 			int[][][][] modelDifferences=new int[numCols][numRows][numDays][statuses.length];
-			for (Record record:records) {
+			for (Record record:gridRecords) {
 
 				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
 				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
