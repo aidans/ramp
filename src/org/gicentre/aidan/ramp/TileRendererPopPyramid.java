@@ -20,6 +20,7 @@ public class TileRendererPopPyramid {
 	
 	int screenXCentre,screenYCentre, screenWH;
 	int[] demogSums;
+	String name;
 	
 	static void setup(PGraphics canvas,int mouseX,int mouseY, int attribBinSize, AbsRel absRel, ColourTable ctDemog, Float colourScale, Float colourScale2) {
 		TileRendererPopPyramid.canvas=canvas;
@@ -40,7 +41,7 @@ public class TileRendererPopPyramid {
 		this.demogSums=demogSums;
 	}
 	
-	public String drawTile() {
+	public String drawTile(boolean showAreaName) {
 		String tooltip=null;
 		//DRAW
 		int localSum=0;
@@ -66,6 +67,12 @@ public class TileRendererPopPyramid {
 			canvas.rect((float)r.getX(),(float)r.getY(),(float)r.getWidth(),(float)r.getHeight());
 			if (r.contains(mouseX,mouseY))
 				tooltip=demogSums[j]+" people";
+		}
+		if (showAreaName && this.name!=null) {
+			canvas.fill(0,80);
+			canvas.textSize(12);
+			canvas.textAlign(PApplet.CENTER,PApplet.CENTER);
+			canvas.text(name,screenXCentre-screenWH/2,screenYCentre-screenWH/2,screenWH,screenWH);
 		}
 		return tooltip;
 	}

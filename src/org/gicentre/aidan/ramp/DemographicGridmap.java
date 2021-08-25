@@ -12,10 +12,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.commons.math3.genetics.Population;
 import org.gicentre.shputils.ShpUtils;
 import org.gicentre.utils.colour.ColourTable;
 import org.gicentre.utils.gui.EnumChanger;
@@ -49,7 +49,7 @@ public class DemographicGridmap extends PApplet{
 
 	
 	ArrayList<Record> gridRecords;
-	ArrayList<Record> areaRecords;
+	ArrayList<AreaRecord> areaRecords;
 	String[] demographicsAttribNames;
 	private String[] statuses;
 	private boolean[] statusShow;
@@ -59,7 +59,6 @@ public class DemographicGridmap extends PApplet{
 
 	Rectangle bounds,gridBounds;
 	Rectangle2D geoBounds;
-	Point[] gridCells;//in same order as areas in shapefile 
 
 	
 	ZoomPan zoomPan;
@@ -73,7 +72,7 @@ public class DemographicGridmap extends PApplet{
 	Float colourScale2=null;
 	
 	
-	HashMap<String, Path2D> boundaries;
+	LinkedHashMap<String, Path2D> boundaries;
 	
 	enum Mode{
 		Population,
@@ -105,6 +104,8 @@ public class DemographicGridmap extends PApplet{
 	EnumChanger<Mode> modeChanger;
 	enum Projection{Gridded,Area,GridMap}
 	EnumChanger<Projection> projectionChanger;
+	
+	float projectionTweenStep=1;//when 0, old projection; when 1, new projection 
 	
 
 	static public void main(String[] args) {
@@ -239,6 +240,8 @@ public class DemographicGridmap extends PApplet{
 			public void valueChanged(ValueChanger valueChanger) {
 				colourScale=null;
 				colourScale2=null;
+				if ((projectionChanger.getValueEnum()==Projection.Area && projectionChanger.getPreviousValueEnum()==Projection.GridMap)||(projectionChanger.getValueEnum()==Projection.GridMap && projectionChanger.getPreviousValueEnum()==Projection.Area))
+					projectionTweenStep=0;//start the tweening
 			}
 		});
 	}
@@ -270,7 +273,7 @@ public class DemographicGridmap extends PApplet{
 
 		Path2D[] shapes=ShpUtils.getShapes("data/scotland_laulevel1_2011/scotland_laulevel1_2011.shp");
 		String[] shapeNames=ShpUtils.getAttribsAsStrings("data/scotland_laulevel1_2011/scotland_laulevel1_2011.shp","name");
-		boundaries=new HashMap<String, Path2D>();
+		boundaries=new LinkedHashMap<String, Path2D>();
 		for (int i=0;i<shapes.length;i++) {
 			boundaries.put(shapeNames[i],shapes[i]);
 		}
@@ -463,47 +466,7 @@ public class DemographicGridmap extends PApplet{
 		gridRecords=records2;
 		records2=null;
 		
-		//AGGREGATE RECORDS BY AREA
-		{
-			System.out.print("Aggregating by area...");
-			areaRecords=new ArrayList<DemographicGridmap.Record>();
-			HashMap<String, Record> areaKey2Record=new HashMap<>();
-			for (Record gridRecord:gridRecords) {
-				String areaKey=null;
-				for (Entry<String,Path2D> entry: boundaries.entrySet()) {
-					if (entry.getValue().contains(gridRecord.x,gridRecord.y)) {
-						areaKey=entry.getKey();
-						break;
-					}
-				}
-				if (areaKey!=null) {
-					Record areaRecord=areaKey2Record.get(areaKey);
-					if (areaRecord==null) {
-						areaRecord=new Record();
-						areaRecord.x=(int)boundaries.get(areaKey).getBounds().getCenterX();
-						areaRecord.y=(int)boundaries.get(areaKey).getBounds().getCenterY();
-						if (gridRecord.popCounts!=null) 
-							areaRecord.popCounts=new int[gridRecord.popCounts.length];
-						if (gridRecord.resultCounts!=null) 
-							areaRecord.resultCounts=new int[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
-						areaKey2Record.put(areaKey, areaRecord);
-						areaRecords.add(areaRecord);
-					}
-					if (gridRecord.popCounts!=null)
-						for (int i=0;i<gridRecord.popCounts.length;i++) 
-							areaRecord.popCounts[i]+=gridRecord.popCounts[i];
-					if (gridRecord.resultCounts!=null)
-						for (int i=0;i<gridRecord.resultCounts.length;i++) 
-							for (int j=0;j<gridRecord.resultCounts[0].length;j++) 
-								for (int k=0;k<gridRecord.resultCounts[0][0].length;k++) 
-									for (int l=0;l<gridRecord.resultCounts[0][0][0].length;l++)
-										areaRecord.resultCounts[i][j][k][l]+=gridRecord.resultCounts[i][j][k][l];
-				}
-			}
-			println("done ("+areaRecords.size()+" areas).");
-		}
-		
-
+		Point[] gridCells;//in same order as areas in shapefile 
 		//load gridmap cells
 		{
 			String[] rows=loadStrings(new File("data/gridmap-layout.csv"));
@@ -520,7 +483,56 @@ public class DemographicGridmap extends PApplet{
 			}
 			
 		}
+
+		//AGGREGATE RECORDS BY AREA
+		{
+			System.out.print("Aggregating by area...");
 		
+			areaRecords=new ArrayList<DemographicGridmap.AreaRecord>();
+			HashMap<String, AreaRecord> areaKey2Record=new HashMap<>();
+			for (Record gridRecord:gridRecords) {
+				String areaKey=null;
+				for (Entry<String,Path2D> entry: boundaries.entrySet()) {
+					if (entry.getValue().contains(gridRecord.x,gridRecord.y)) {
+						areaKey=entry.getKey();
+						break;
+					}
+				}
+				if (areaKey!=null) {
+					AreaRecord areaRecord=areaKey2Record.get(areaKey);
+					if (areaRecord==null) {
+						areaRecord=new AreaRecord();
+						areaRecord.x=(int)boundaries.get(areaKey).getBounds().getCenterX();
+						areaRecord.y=(int)boundaries.get(areaKey).getBounds().getCenterY();
+						if (gridRecord.popCounts!=null) 
+							areaRecord.popCounts=new int[gridRecord.popCounts.length];
+						if (gridRecord.resultCounts!=null) 
+							areaRecord.resultCounts=new int[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
+						areaKey2Record.put(areaKey, areaRecord);
+						areaRecord.name=areaKey;
+						areaRecords.add(areaRecord);
+					}
+					if (gridRecord.popCounts!=null)
+						for (int i=0;i<gridRecord.popCounts.length;i++) 
+							areaRecord.popCounts[i]+=gridRecord.popCounts[i];
+					if (gridRecord.resultCounts!=null)
+						for (int i=0;i<gridRecord.resultCounts.length;i++) 
+							for (int j=0;j<gridRecord.resultCounts[0].length;j++) 
+								for (int k=0;k<gridRecord.resultCounts[0][0].length;k++) 
+									for (int l=0;l<gridRecord.resultCounts[0][0][0].length;l++)
+										areaRecord.resultCounts[i][j][k][l]+=gridRecord.resultCounts[i][j][k][l];
+				}
+			}
+			int i=0;
+			for (String name:boundaries.keySet()) {
+				AreaRecord areaRecord=areaKey2Record.get(name);
+				areaRecord.gridX=gridCells[i].x;
+				areaRecord.gridY=gridCells[i].y;
+				i++;
+			}
+			println("done ("+areaRecords.size()+" areas).");
+		}
+				
 		System.gc();
 	
 		long t1=System.currentTimeMillis();
@@ -539,7 +551,9 @@ public class DemographicGridmap extends PApplet{
 		final String comparisonDatasetName=comparisonDatasetChanger.getValue();
 		final Mode mode=modeChanger.getValueEnum();
 		final AbsRel absRel=absRelChanger.getValueEnum();
+		
 		final Projection projection=projectionChanger.getValueEnum();
+		final Projection prevProjection=projectionChanger.getPreviousValueEnum();
 		background(200);
 		
 		
@@ -558,10 +572,10 @@ public class DemographicGridmap extends PApplet{
 		
 		ArrayList<TileRendererPopPyramid> tileRenderers=new ArrayList<TileRendererPopPyramid>();
 
-		int gridWH;
 		if (mode==Mode.Population && demographicsAttribNames!=null) {
 			title="Population of residents by age group (younger at top)";
 			if (projectionChanger.getValueEnum()==Projection.Gridded) {
+				int gridWH;
 				//GRID THE DATA
 				int[][][] demogSums=new int[numCols][numRows][demographicsAttribNames.length/attribBinSize];
 				for (Record record:gridRecords) {
@@ -584,23 +598,39 @@ public class DemographicGridmap extends PApplet{
 					for (int y=0;y<numRows;y++)
 						tileRenderers.add(new TileRendererPopPyramid(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,spatialBinSize,demogSums[x][y]));
 			}
-			else if (projectionChanger.getValueEnum()==Projection.Area || projectionChanger.getValueEnum()==Projection.GridMap) {
-				gridWH=0;
+			else if (projection==Projection.Area || projection==Projection.GridMap) {
 				int i=0;
-				for (Record record:areaRecords) {
-					int x=0,y=0;
-					if (projectionChanger.getValueEnum()==Projection.Area ) {
-						gridWH=this.spatialBinSize;
-						x=(int)map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-						y=(int)map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);						
+				for (AreaRecord record:areaRecords) {
+
+					int gridWHForArea=this.spatialBinSize;
+					int xForArea=(int)map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+					int yForArea=(int)map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);						
+
+					int gridWHForGridMap=(int)((bounds.getHeight()/gridBounds.height))-5;
+					int xForGridMap=(int)map(record.gridX,(float)gridBounds.getMinX(),(float)gridBounds.getMaxX(),bounds.x,bounds.x+bounds.width)+gridWHForGridMap/2;
+					int yForGridMap=(int)map(record.gridY,(float)gridBounds.getMaxY(),(float)gridBounds.getMinY(),bounds.y,bounds.y+bounds.height)-gridWHForGridMap/2;
+					gridWHForGridMap*=zoomPanState.getZoomScale();//correct for zoom
+										
+					PVector pt=null;
+					int gridWH=0;
+					if (projectionTweenStep<1) {
+						if (prevProjection==Projection.Area && projection==Projection.GridMap) {
+							pt=zoomPanState.getCoordToDisp(lerp(xForArea,xForGridMap,projectionTweenStep),lerp(yForArea,yForGridMap,projectionTweenStep));
+							gridWH=(int)lerp(gridWHForArea,gridWHForGridMap,projectionTweenStep);
+						}
+						else {
+							pt=zoomPanState.getCoordToDisp(lerp(xForGridMap,xForArea,projectionTweenStep),lerp(yForGridMap,yForArea,projectionTweenStep));
+							gridWH=(int)lerp(gridWHForGridMap,gridWHForArea,projectionTweenStep);
+						}
 					}
-					else if (projectionChanger.getValueEnum()==Projection.GridMap) {
-						gridWH=(int)((bounds.getHeight()/gridBounds.height))-5;
-						x=(int)map(gridCells[i].x,(float)gridBounds.getMinX(),(float)gridBounds.getMaxX(),bounds.x,bounds.x+bounds.width)+gridWH/2;
-						y=(int)map(gridCells[i].y,(float)gridBounds.getMaxY(),(float)gridBounds.getMinY(),bounds.y,bounds.y+bounds.height)-gridWH/2;
-						gridWH*=zoomPanState.getZoomScale();//correct for zoom
+					else if (projection==Projection.Area) {
+						pt=zoomPanState.getCoordToDisp(xForArea,yForArea);
+						gridWH=gridWHForArea;
 					}
-					PVector pt=zoomPanState.getCoordToDisp(x,y);
+					else if (projection==Projection.GridMap) {
+						pt=zoomPanState.getCoordToDisp(xForGridMap,yForGridMap);
+						gridWH=gridWHForGridMap;
+					}
 					if (pt.x+gridWH/2>0 &&pt.x-gridWH/2<width && pt.y+gridWH/2>0 && pt.y-gridWH/2<height) {
 						//aggregate the age bands accordingly
 						int[] demogSums=new int[demographicsAttribNames.length/attribBinSize];
@@ -609,7 +639,9 @@ public class DemographicGridmap extends PApplet{
 								demogSums[j/attribBinSize]+=record.popCounts[j];
 							}
 						}
-						tileRenderers.add(new TileRendererPopPyramid((int)pt.x,(int)pt.y,gridWH,demogSums));
+						TileRendererPopPyramid tile=new TileRendererPopPyramid((int)pt.x,(int)pt.y,gridWH,demogSums);
+						tile.name=record.name;
+						tileRenderers.add(tile);
 					}
 					i++;
 				}
@@ -646,9 +678,13 @@ public class DemographicGridmap extends PApplet{
 
 			//RENDER THEM
 			for (TileRendererPopPyramid tileRenderer:tileRenderers) {
-				String tileTooltip=tileRenderer.drawTile();
+				boolean drawLabels=false;
+				if (projection==Projection.GridMap)
+					drawLabels=true;
+				String tileTooltip=tileRenderer.drawTile(drawLabels);
 				if (tileTooltip!=null)
 					tooltip=tileTooltip;
+
 			}
 			for (TileRendererPopPyramid tileRenderer:tileRenderers)
 				tileRenderer.drawTileRelativeSymb();
@@ -1206,8 +1242,11 @@ public class DemographicGridmap extends PApplet{
 			projectionChanger.draw(x, height-statusBarH+3);
 			x+=projectionChanger.getWidth()+10;
 		}
+		if (projectionTweenStep<=1) {
+			projectionTweenStep+=0.05f;
+		}
 	}
-	
+
 
 	
 	private void drawTooltip(String label,int boxX, int boxY, int w) {
@@ -1306,10 +1345,11 @@ public class DemographicGridmap extends PApplet{
 		int x,y;
 		int[] popCounts; //by demographicgroup
 		int[][][][] resultCounts; //first number is the model result set... followed by time, demographicGroup, infectionType
-//		short[] resultForce; //by time
-//		short[] resultReservoir; //by time
-//		short[] baselineForce; //by time
-//		short[] baselineReservoir; //by time
+	}
+
+	class AreaRecord extends Record{
+		String name;
+		int gridX,gridY;
 	}
 
 }
