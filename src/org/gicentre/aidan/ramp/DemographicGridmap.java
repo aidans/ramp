@@ -2,6 +2,8 @@ package org.gicentre.aidan.ramp;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Rectangle2D;
@@ -35,9 +37,9 @@ import ucar.nc2.NetcdfFile;
 import ucar.nc2.NetcdfFiles;
 
 
-public class DemographicGridmap extends PApplet{
+public class DemographicGridmap extends PApplet implements MouseWheelListener{
 
-	static String APP_NAME="DemographicGridmap, v1.8 (16/08/21)";
+	static String APP_NAME="DemographicGridmap, v1.9 (27/08/21)";
 
 	static String DATAFILE_DEMOGRAPHICS_PATH;
 	static ArrayList<String> DATAFILE_RESULTS_PATHS;
@@ -130,6 +132,7 @@ public class DemographicGridmap extends PApplet{
 	}
 	
 	public void setup() {
+		noLoop();
 		
 //		LOAD_OUTPUTS=false;
 //		LOAD_BASELINE=false;
@@ -244,6 +247,7 @@ public class DemographicGridmap extends PApplet{
 					projectionTweenStep=0;//start the tweening
 			}
 		});
+		this.addMouseWheelListener(this);
 	}
 	
 	private void loadData() {
@@ -543,6 +547,8 @@ public class DemographicGridmap extends PApplet{
 				
 				
 	public void draw() {
+		
+
 		final int mouseX=this.mouseX;
 		final int mouseY=this.mouseY;
 		final int spatialBinSize=this.spatialBinSize;
@@ -559,6 +565,11 @@ public class DemographicGridmap extends PApplet{
 		
 		if (mouseY<50)
 			currentDay=(int)map(mouseX,0,width,0,numDays);
+
+		if (mode==Mode.ModelAgeDay)
+			loop();
+		else
+			noLoop();
 				
 		ZoomPanState zoomPanState=zoomPan.getZoomPanState();
 		
@@ -810,7 +821,7 @@ public class DemographicGridmap extends PApplet{
 							for (int k=0;k<modelSums[x][y][j].length;k++)
 								localSum+=modelSums[x][y][j][k];
 						noFill();
-						stroke(0,100);
+						stroke(0,0,200,100);
 						float w=map(localSum,0,colourScale2,0,spatialBinSize);
 						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
 					}
@@ -825,6 +836,7 @@ public class DemographicGridmap extends PApplet{
 				for (int y=0;y<numRows;y++)
 					line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
 			}
+			
 
 		}
 
@@ -939,7 +951,7 @@ public class DemographicGridmap extends PApplet{
 							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
 							localSumAcrossT+=modelSums[x][y][t][statusIdx];
 						noFill();
-						stroke(0,100);
+						stroke(0,0,200,100);
 						float w=map(localSumAcrossT,0,colourScale2,0,spatialBinSize);
 						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
 					}
@@ -952,6 +964,16 @@ public class DemographicGridmap extends PApplet{
 				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
 			for (int y=0;y<numRows;y++)
 				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
+
+			//draw vertical line for time on each square
+			if (bounds.contains(mouseX,mouseY)) {
+				stroke(0,0,200,50);
+				int tPos=((mouseX-bounds.x)-(int)(((mouseX-bounds.x)/spatialBinSize)*(float)spatialBinSize));
+				for (int x=0;x<numCols;x++) 
+					for (int y=0;y<numRows;y++)
+						line(x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+2,x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+spatialBinSize-4);
+				
+			}
 
 		}
 		
@@ -1078,7 +1100,7 @@ public class DemographicGridmap extends PApplet{
 				for (int x=0;x<numCols;x++) {
 					for (int y=0;y<numRows;y++) {
 						noFill();
-						stroke(0,100);
+						stroke(0,0,200,100);
 						float w=map(popSums[x][y],0,colourScale2,0,spatialBinSize);
 						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
 					}
@@ -1091,6 +1113,17 @@ public class DemographicGridmap extends PApplet{
 				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
 			for (int y=0;y<numRows;y++)
 				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
+			
+			//draw vertical line for time on each square
+			if (bounds.contains(mouseX,mouseY)) {
+				stroke(0,0,200,50);
+				int tPos=((mouseX-bounds.x)-(int)(((mouseX-bounds.x)/spatialBinSize)*(float)spatialBinSize));
+				for (int x=0;x<numCols;x++) 
+					for (int y=0;y<numRows;y++)
+						line(x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+2,x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+spatialBinSize-4);
+				
+			}
+
 
 		}
 		
@@ -1247,6 +1280,17 @@ public class DemographicGridmap extends PApplet{
 		}
 	}
 
+	public void mouseMoved() {
+		redraw();
+	}
+
+	public void mouseDragged() {
+		redraw();
+	}
+
+	public void mousePressed() {
+		redraw();
+	}
 
 	
 	private void drawTooltip(String label,int boxX, int boxY, int w) {
@@ -1333,11 +1377,12 @@ public class DemographicGridmap extends PApplet{
 		if (key=='h') {
 			helpScreen.setIsActive(!helpScreen.getIsActive());
 		}
-	
+		redraw();
 	}
 	
 	public void mouseClicked() {
 		mouseClicked=true;
+		redraw();
 	}
 	
 
@@ -1350,6 +1395,12 @@ public class DemographicGridmap extends PApplet{
 	class AreaRecord extends Record{
 		String name;
 		int gridX,gridY;
+	}
+
+	@Override
+	public void mouseWheelMoved(MouseWheelEvent arg0) {
+		redraw();
+		
 	}
 
 }

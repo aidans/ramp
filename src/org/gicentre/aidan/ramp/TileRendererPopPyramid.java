@@ -84,7 +84,7 @@ public class TileRendererPopPyramid {
 				if (demogSums[j]>localSum)
 					localSum=demogSums[j];
 			canvas.noFill();
-			canvas.stroke(0,100);
+			canvas.stroke(0,0,200,100);
 			float w=PApplet.map(localSum,0,colourScale2,0,screenWH);
 			canvas.ellipse(screenXCentre,screenYCentre,w,w);
 		}
