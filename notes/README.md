@@ -5,9 +5,9 @@
 ### Pre-meeting
 CH - have explored using the visualisation to look at different pollution related changes on the outbreak. In one particular run, I varied the chance of exposure by levels of pollution in the local grid square. From the comparison, I can see that there are more exposed individuals in the first part of the wave in one run, but this then flips in the subsequent timeperiods, suggesting that the pollution effect has brought forward the timing of the epidemic peak (as we would expect). 
 
-<img src="Capture.png" width="400"/>
-<img src="Capture2.png" width="400"/>
-<img src="Capture3.png" width="400"/>
+<img src="Capture.PNG" width="400"/>
+<img src="Capture2.PNG" width="400"/>
+<img src="Capture3.PNG" width="400"/>
 
 ## 20th August 2021 (meeting)
 
