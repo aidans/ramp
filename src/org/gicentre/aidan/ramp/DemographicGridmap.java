@@ -13,7 +13,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -39,6 +41,11 @@ import ucar.nc2.NetcdfFiles;
 
 public class DemographicGridmap extends PApplet implements MouseWheelListener{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	static String APP_NAME="DemographicGridmap, v1.9 (27/08/21)";
 
 	static String DATAFILE_DEMOGRAPHICS_PATH;
@@ -53,8 +60,8 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	ArrayList<Record> gridRecords;
 	ArrayList<AreaRecord> areaRecords;
 	String[] demographicsAttribNames;
-	private String[] statuses;
-	private boolean[] statusShow;
+	String[] statuses;
+	boolean[] statusShow;
 	private int numDays;
 	
 	ColourTable ctDemog,ctResult,ctStatus,ctForce,ctReservoir;
@@ -78,7 +85,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	
 	enum Mode{
 		Population,
-		ModelAgeDay,
+		ModelAgeDayAnim,
 		ModelTime,
 		ModelComparisonTime,
 	}
@@ -109,6 +116,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	
 	float projectionTweenStep=1;//when 0, old projection; when 1, new projection 
 	
+	boolean flagToRedraw=true;
 
 	static public void main(String[] args) {
 		DATAFILE_RESULTS_PATHS=new ArrayList<>();
@@ -132,7 +140,6 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	}
 	
 	public void setup() {
-		noLoop();
 		
 //		LOAD_OUTPUTS=false;
 //		LOAD_BASELINE=false;
@@ -212,6 +219,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 				colourScale2=null;
 				if (datasetChanger.getValue().equals(comparisonDatasetChanger.getValue()))
 					comparisonDatasetChanger.changeToNextValue();
+				flagToRedraw=true;
 			}
 		});
 		comparisonDatasetChanger=new StringChanger(this,"Comparison dataset",datasetNames,pFont);
@@ -222,6 +230,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 				colourScale2=null;
 				if (comparisonDatasetChanger.getValue().equals(datasetChanger.getValue()))
 					datasetChanger.changeToNextValue();
+				flagToRedraw=true;
 			}
 		});
 		modeChanger=new EnumChanger(this, "Mode", Mode.class,pFont);
@@ -229,6 +238,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 			public void valueChanged(ValueChanger valueChanger) {
 				colourScale=null;
 				colourScale2=null;
+				flagToRedraw=true;
 			}
 		});
 		absRelChanger=new EnumChanger(this, "Abs/rel", AbsRel.class,pFont);
@@ -236,6 +246,8 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 			public void valueChanged(ValueChanger valueChanger) {
 				colourScale=null;
 				colourScale2=null;
+				flagToRedraw=true;
+				redraw();
 			}
 		});
 		projectionChanger=new EnumChanger(this, "Projections", Projection.class,pFont);
@@ -245,9 +257,11 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 				colourScale2=null;
 				if ((projectionChanger.getValueEnum()==Projection.Area && projectionChanger.getPreviousValueEnum()==Projection.GridMap)||(projectionChanger.getValueEnum()==Projection.GridMap && projectionChanger.getPreviousValueEnum()==Projection.Area))
 					projectionTweenStep=0;//start the tweening
+				flagToRedraw=true;
 			}
 		});
 		this.addMouseWheelListener(this);
+		
 	}
 	
 	private void loadData() {
@@ -342,7 +356,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 							geoBounds.add(record.x,record.y);
 					}
 					if (record.popCounts==null)
-						record.popCounts=new int[demographicsAttribNames.length];
+						record.popCounts=new short[demographicsAttribNames.length];
 					for (int j=0;j<demographicsAttribNames.length;j++) 
 						record.popCounts[j]+=(short)values[j][i];
 					
@@ -403,36 +417,49 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 						}
 
 						for (int locationIdx=chunkOrigin;locationIdx<chunkOrigin+size[1];locationIdx++) {
-							//get location
-							String gridRef=locations[locationIdx].replaceAll(" ", "");
-							String easting=gridRef.substring(2,4);
-							String northing=gridRef.substring(4,6);
-							String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
-							easting=prefix.substring(0,1)+easting+"000";
-							northing=prefix.substring(1)+northing+"000";
-							int x=Integer.parseInt(easting)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
-							int y=Integer.parseInt(northing)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
-							String gridKey=x+"-"+y;
-							Record record=gridKey2Record.get(gridKey);
-							if (record==null) {
-								record=new Record();
-								//								println("Made new");
-								gridKey2Record.put(gridKey, record);
-								gridRecords.add(record);
-								record.x=x;
-								record.y=y;
-								if (geoBounds==null)
-									geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
-								else
-									geoBounds.add(record.x,record.y);
-							}
-							if (record.resultCounts==null)
-								record.resultCounts=new int[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
-
+							//find out if there's any data
+							boolean isEmpty=true;
+							stop:
 							for (int dayIdx=0;dayIdx<numDays;dayIdx++) 
 								for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) 
 									for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++)
-										record.resultCounts[resultsDataIdx][dayIdx][demographicIdx][statusIdx]+=(short)modelData[dayIdx][locationIdx-chunkOrigin][statusIdx*numDemographics+demographicIdx];
+										if (modelData[dayIdx][locationIdx-chunkOrigin][statusIdx*numDemographics+demographicIdx]>0) {
+											isEmpty=false;
+											break stop;//break out of entire loop
+										}
+							if (!isEmpty) {
+
+								//get location
+								String gridRef=locations[locationIdx].replaceAll(" ", "");
+								String easting=gridRef.substring(2,4);
+								String northing=gridRef.substring(4,6);
+								String prefix=tile2coordprefix.get(gridRef.toUpperCase().substring(0,2));
+								easting=prefix.substring(0,1)+easting+"000";
+								northing=prefix.substring(1)+northing+"000";
+								int x=Integer.parseInt(easting)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+								int y=Integer.parseInt(northing)/AGGREGATE_INPUT_M*AGGREGATE_INPUT_M+AGGREGATE_INPUT_M/2;
+								String gridKey=x+"-"+y;
+								Record record=gridKey2Record.get(gridKey);
+								if (record==null) {
+									record=new Record();
+									//								println("Made new");
+									gridKey2Record.put(gridKey, record);
+									gridRecords.add(record);
+									record.x=x;
+									record.y=y;
+									if (geoBounds==null)
+										geoBounds=new Rectangle2D.Float(record.x,record.y,0,0);
+									else
+										geoBounds.add(record.x,record.y);
+								}
+								if (record.resultCounts==null)
+									record.resultCounts=new short[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
+
+								for (int dayIdx=0;dayIdx<numDays;dayIdx++) 
+									for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) 
+										for (int demographicIdx=0;demographicIdx<numDemographics;demographicIdx++)
+											record.resultCounts[resultsDataIdx][dayIdx][demographicIdx][statusIdx]+=(short)modelData[dayIdx][locationIdx-chunkOrigin][statusIdx*numDemographics+demographicIdx];
+							}
 						}
 					}
 					println("done.");
@@ -455,10 +482,10 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 						break;
 					}
 			if (record.resultCounts!=null) {
-				for (int[][][] a1:record.resultCounts)
-					for (int[][] a2:a1)
-						for (int[] a3:a2)
-							for (int v:a3)
+				for (short[][][] a1:record.resultCounts)
+					for (short[][] a2:a1)
+						for (short[] a3:a2)
+							for (short v:a3)
 								if (v>0) {
 									delete=false;
 									break;
@@ -509,9 +536,9 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 						areaRecord.x=(int)boundaries.get(areaKey).getBounds().getCenterX();
 						areaRecord.y=(int)boundaries.get(areaKey).getBounds().getCenterY();
 						if (gridRecord.popCounts!=null) 
-							areaRecord.popCounts=new int[gridRecord.popCounts.length];
+							areaRecord.popCounts=new short[gridRecord.popCounts.length];
 						if (gridRecord.resultCounts!=null) 
-							areaRecord.resultCounts=new int[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
+							areaRecord.resultCounts=new short[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
 						areaKey2Record.put(areaKey, areaRecord);
 						areaRecord.name=areaKey;
 						areaRecords.add(areaRecord);
@@ -541,35 +568,165 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	
 		long t1=System.currentTimeMillis();
 		println("Loaded data for "+gridRecords.size()+" locations (resampled to "+AGGREGATE_INPUT_M+"m) in "+(t1-t)/1000+" seconds.");
+		long heapSize = Runtime.getRuntime().totalMemory(); 
+		long heapMaxSize = Runtime.getRuntime().maxMemory();
+
+		println(heapSize/1073741824+"/"+heapMaxSize/1073741824+"gb");
 	}
 
 	
+	private Collection<Tile> createTiles(){
+		final Mode mode=modeChanger.getValueEnum();
+		final Projection projection=projectionChanger.getValueEnum();
+		final Projection prevProjection=projectionChanger.getPreviousValueEnum();
+		final ZoomPanState zoomPanState=zoomPan.getZoomPanState();
+		
+		int numCols=(int)(bounds.getWidth()/spatialBinSize+1);
+		int numRows=(int)(bounds.getHeight()/spatialBinSize+1);
+
+		final String datasetName=datasetChanger.getValue();
+		final String comparisonDatasetName=comparisonDatasetChanger.getValue();
+		int currentDatasetIdx=datasetNames.indexOf(datasetName);
+		int currentBaselineDatasetIdx=datasetNames.indexOf(comparisonDatasetName);
+
+		
+		Rectangle geoBoundsInView=null;
+		{
+			PVector pt1=zoomPan.getDispToCoord(new PVector(bounds.x,bounds.y));
+			PVector pt2=zoomPan.getDispToCoord(new PVector(bounds.x+bounds.width,bounds.y+bounds.height));
+			float geoXLeft=map(pt1.x,bounds.x,bounds.x+bounds.width,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX());
+			float geoYTop=map(pt2.y,bounds.y,bounds.y+bounds.height,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY());
+			float geoXRight=map(pt2.x,bounds.x,bounds.x+bounds.width,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX());
+			float geoYBottom=map(pt1.y,bounds.y,bounds.y+bounds.height,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY());
+			geoBoundsInView=new Rectangle((int)geoXLeft,(int)geoYTop,(int)geoXRight-(int)geoXLeft,(int)geoYBottom-(int)geoYTop);
+		}
+
+		HashSet<Tile> tiles=new HashSet<Tile>();
+		
+		if (projection==Projection.Gridded) {
+			HashSet[][] griddedRecords=new HashSet[numCols][numRows];
+			for (Record record:gridRecords) {
+				if (geoBoundsInView.contains(record.x,record.y)) {
+					float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+					float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
+					PVector pt=zoomPanState.getCoordToDisp(x,y);
+					int xBin=(int)(pt.x/spatialBinSize);
+					int yBin=(int)(pt.y/spatialBinSize);
+					if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows) {
+						if (griddedRecords[xBin][yBin]==null)
+							griddedRecords[xBin][yBin]=new HashSet<>();
+						griddedRecords[xBin][yBin].add(record);
+					}
+				}
+			}
+			for (int col=0;col<numCols;col++) {
+				for (int row=0;row<numRows;row++) {
+					if (mode==Mode.Population && griddedRecords[col][row]!=null)
+						tiles.add(new TilePopulation(bounds.x+col*spatialBinSize+spatialBinSize/2, bounds.y+row*spatialBinSize+spatialBinSize/2, spatialBinSize, griddedRecords[col][row],demographicsAttribNames.length,attribBinSize));
+					else if (mode==Mode.ModelAgeDayAnim && griddedRecords[col][row]!=null)
+						tiles.add(new TileModelAgeAnim(bounds.x+col*spatialBinSize+spatialBinSize/2, bounds.y+row*spatialBinSize+spatialBinSize/2, spatialBinSize, griddedRecords[col][row],statuses.length,currentDatasetIdx,currentDay));
+					else if (mode==Mode.ModelTime && griddedRecords[col][row]!=null)
+						tiles.add(new TileModelTime(bounds.x+col*spatialBinSize+spatialBinSize/2, bounds.y+row*spatialBinSize+spatialBinSize/2, spatialBinSize, griddedRecords[col][row],numDays,statuses.length,currentDatasetIdx));
+					else if (mode==Mode.ModelComparisonTime && griddedRecords[col][row]!=null)
+						tiles.add(new TileModelComparison(bounds.x+col*spatialBinSize+spatialBinSize/2, bounds.y+row*spatialBinSize+spatialBinSize/2, spatialBinSize, griddedRecords[col][row],numDays,statuses.length,currentDatasetIdx,currentBaselineDatasetIdx));
+					
+				}
+			}
+		}
+		else if (projection==Projection.Area || projection==Projection.GridMap) {
+			int i=0;
+			for (AreaRecord record:areaRecords) {
+
+				int gridWHForArea=this.spatialBinSize;
+				int xForArea=(int)map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
+				int yForArea=(int)map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);						
+
+				int gridWHForGridMap=(int)((bounds.getHeight()/gridBounds.height))-5;
+				int xForGridMap=(int)map(record.gridX,(float)gridBounds.getMinX(),(float)gridBounds.getMaxX(),bounds.x,bounds.x+bounds.width)+gridWHForGridMap/2;
+				int yForGridMap=(int)map(record.gridY,(float)gridBounds.getMaxY(),(float)gridBounds.getMinY(),bounds.y,bounds.y+bounds.height)-gridWHForGridMap/2;
+				gridWHForGridMap*=zoomPanState.getZoomScale();//correct for zoom
+									
+				PVector pt=null;
+				int gridWH=0;
+				if (projectionTweenStep<1) {
+					if (prevProjection==Projection.Area && projection==Projection.GridMap) {
+						pt=zoomPanState.getCoordToDisp(lerp(xForArea,xForGridMap,projectionTweenStep),lerp(yForArea,yForGridMap,projectionTweenStep));
+						gridWH=(int)lerp(gridWHForArea,gridWHForGridMap,projectionTweenStep);
+					}
+					else {
+						pt=zoomPanState.getCoordToDisp(lerp(xForGridMap,xForArea,projectionTweenStep),lerp(yForGridMap,yForArea,projectionTweenStep));
+						gridWH=(int)lerp(gridWHForGridMap,gridWHForArea,projectionTweenStep);
+					}
+				}
+				else if (projection==Projection.Area) {
+					pt=zoomPanState.getCoordToDisp(xForArea,yForArea);
+					gridWH=gridWHForArea;
+				}
+				else if (projection==Projection.GridMap) {
+					pt=zoomPanState.getCoordToDisp(xForGridMap,yForGridMap);
+					gridWH=gridWHForGridMap;
+				}
+				ArrayList<Record> arrayList=new ArrayList<DemographicGridmap.Record>();
+				arrayList.add(record);
+				Tile tile=null;
+				if (mode==Mode.Population)
+					tile=new TilePopulation((int)pt.x,(int)pt.y,gridWH,arrayList,demographicsAttribNames.length,attribBinSize);
+				else if (mode==Mode.ModelAgeDayAnim)
+					tiles.add(new TileModelAgeAnim((int)pt.x,(int)pt.y,gridWH,arrayList,statuses.length,currentDatasetIdx,currentDay));
+				else if (mode==Mode.ModelTime)
+					tiles.add(new TileModelTime((int)pt.x,(int)pt.y,gridWH,arrayList,numDays,statuses.length,currentDatasetIdx));
+				else if (mode==Mode.ModelComparisonTime)
+					tiles.add(new TileModelComparison((int)pt.x,(int)pt.y,gridWH,arrayList,numDays,statuses.length,currentDatasetIdx,currentBaselineDatasetIdx));
+				if (tile!=null) {
+					tile.name=record.name;
+					tiles.add(tile);
+				}
+			}
+			i++;
+		}
+		return tiles;
+	}
 				
 				
 	public void draw() {
 		
-
+		Rectangle geoBoundsInView=null;
+		{
+			PVector pt1=zoomPan.getDispToCoord(new PVector(bounds.x,bounds.y));
+			PVector pt2=zoomPan.getDispToCoord(new PVector(bounds.x+bounds.width,bounds.y+bounds.height));
+			float geoXLeft=map(pt1.x,bounds.x,bounds.x+bounds.width,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX());
+			float geoYTop=map(pt1.y,bounds.y,bounds.y+bounds.height,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY());
+			float geoXRight=map(pt2.x,bounds.x,bounds.x+bounds.width,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX());
+			float geoYBottom=map(pt2.y,bounds.y,bounds.y+bounds.height,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY());
+			geoBoundsInView=new Rectangle((int)geoXLeft,(int)geoYTop,(int)geoXRight-(int)geoXLeft,(int)geoYBottom-(int)geoYTop);
+		}
+//		println("Geographical area in view is "+geoBoundsInView.width/1000+"x"+geoBoundsInView.height/1000+"km");
+//		println("5pixel width "+(int)(geoBoundsInView.width/(float)bounds.width*5/1000f)+"km");
+		
+		
+		if (!flagToRedraw) {
+			return;
+		}
+		
+		
+		flagToRedraw=false;
+		
 		final int mouseX=this.mouseX;
 		final int mouseY=this.mouseY;
 		final int spatialBinSize=this.spatialBinSize;
 		
-		final String datasetName=datasetChanger.getValue();
-		final String comparisonDatasetName=comparisonDatasetChanger.getValue();
 		final Mode mode=modeChanger.getValueEnum();
 		final AbsRel absRel=absRelChanger.getValueEnum();
 		
 		final Projection projection=projectionChanger.getValueEnum();
-		final Projection prevProjection=projectionChanger.getPreviousValueEnum();
 		background(200);
 		
 		
 		if (mouseY<50)
 			currentDay=(int)map(mouseX,0,width,0,numDays);
 
-		if (mode==Mode.ModelAgeDay)
-			loop();
-		else
-			noLoop();
+		if (mode==Mode.ModelAgeDayAnim || projectionTweenStep<1)
+			flagToRedraw=true;
 				
 		ZoomPanState zoomPanState=zoomPan.getZoomPanState();
 		
@@ -578,555 +735,80 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		
 		
 		String title="";
-
 		String tooltip="";
-		
-		ArrayList<TileRendererPopPyramid> tileRenderers=new ArrayList<TileRendererPopPyramid>();
-
-		if (mode==Mode.Population && demographicsAttribNames!=null) {
-			title="Population of residents by age group (younger at top)";
-			if (projectionChanger.getValueEnum()==Projection.Gridded) {
-				int gridWH;
-				//GRID THE DATA
-				int[][][] demogSums=new int[numCols][numRows][demographicsAttribNames.length/attribBinSize];
-				for (Record record:gridRecords) {
-					float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-					float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
-					PVector pt=zoomPanState.getCoordToDisp(x,y);
-					int xBin=(int)(pt.x/spatialBinSize);
-					int yBin=(int)(pt.y/spatialBinSize);
-					if (record.popCounts!=null && xBin>=0 && xBin<demogSums.length && yBin>=0 && yBin<demogSums[0].length) {
-						for (int j=0;j<demographicsAttribNames.length;j++) {
-							if (j/attribBinSize<demogSums[xBin][yBin].length) {
-								demogSums[xBin][yBin][j/attribBinSize]+=record.popCounts[j];
-							}
-						}
-					}
-				}
-
-				//CREATE TILERENDER OBJECTS
-				for (int x=0;x<numCols;x++)
-					for (int y=0;y<numRows;y++)
-						tileRenderers.add(new TileRendererPopPyramid(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,spatialBinSize,demogSums[x][y]));
-			}
-			else if (projection==Projection.Area || projection==Projection.GridMap) {
-				int i=0;
-				for (AreaRecord record:areaRecords) {
-
-					int gridWHForArea=this.spatialBinSize;
-					int xForArea=(int)map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-					int yForArea=(int)map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);						
-
-					int gridWHForGridMap=(int)((bounds.getHeight()/gridBounds.height))-5;
-					int xForGridMap=(int)map(record.gridX,(float)gridBounds.getMinX(),(float)gridBounds.getMaxX(),bounds.x,bounds.x+bounds.width)+gridWHForGridMap/2;
-					int yForGridMap=(int)map(record.gridY,(float)gridBounds.getMaxY(),(float)gridBounds.getMinY(),bounds.y,bounds.y+bounds.height)-gridWHForGridMap/2;
-					gridWHForGridMap*=zoomPanState.getZoomScale();//correct for zoom
-										
-					PVector pt=null;
-					int gridWH=0;
-					if (projectionTweenStep<1) {
-						if (prevProjection==Projection.Area && projection==Projection.GridMap) {
-							pt=zoomPanState.getCoordToDisp(lerp(xForArea,xForGridMap,projectionTweenStep),lerp(yForArea,yForGridMap,projectionTweenStep));
-							gridWH=(int)lerp(gridWHForArea,gridWHForGridMap,projectionTweenStep);
-						}
-						else {
-							pt=zoomPanState.getCoordToDisp(lerp(xForGridMap,xForArea,projectionTweenStep),lerp(yForGridMap,yForArea,projectionTweenStep));
-							gridWH=(int)lerp(gridWHForGridMap,gridWHForArea,projectionTweenStep);
-						}
-					}
-					else if (projection==Projection.Area) {
-						pt=zoomPanState.getCoordToDisp(xForArea,yForArea);
-						gridWH=gridWHForArea;
-					}
-					else if (projection==Projection.GridMap) {
-						pt=zoomPanState.getCoordToDisp(xForGridMap,yForGridMap);
-						gridWH=gridWHForGridMap;
-					}
-					if (pt.x+gridWH/2>0 &&pt.x-gridWH/2<width && pt.y+gridWH/2>0 && pt.y-gridWH/2<height) {
-						//aggregate the age bands accordingly
-						int[] demogSums=new int[demographicsAttribNames.length/attribBinSize];
-						for (int j=0;j<demographicsAttribNames.length;j++) {
-							if (j/attribBinSize<demogSums.length) {
-								demogSums[j/attribBinSize]+=record.popCounts[j];
-							}
-						}
-						TileRendererPopPyramid tile=new TileRendererPopPyramid((int)pt.x,(int)pt.y,gridWH,demogSums);
-						tile.name=record.name;
-						tileRenderers.add(tile);
-					}
-					i++;
-				}
-			}
-			
-			//FIND MAX (IF NECESSARY) for glyph
-			Float colourScale=this.colourScale;
-			if (colourScale==null && absRel==AbsRel.Absolute) {
-				//for RELATIVE, max pop is any one age band
-				colourScale=-Float.MAX_VALUE;
-				for (TileRendererPopPyramid tileRenderer:tileRenderers) 
-						for (int j=0;j<tileRenderer.demogSums.length;j++) 
-							colourScale=max(colourScale,(float)(tileRenderer.demogSums[j]));
-				this.colourScale=colourScale;
-			}
-			//FIND MAX (IF NECESSARY) for transp/symbolsize
-			Float colourScale2=this.colourScale2;
-			if (colourScale2==null && absRel!=AbsRel.Absolute) {
-				//max pop in any square
-				colourScale2=-Float.MAX_VALUE;
-				for (TileRendererPopPyramid tileRenderer:tileRenderers) { 
-					int localSum=0;
-					for (int j=0;j<demographicsAttribNames.length/attribBinSize;j++) {
-						if (tileRenderer.demogSums[j]>localSum)
-							localSum=tileRenderer.demogSums[j];
-					}
-					colourScale2=max(colourScale2,localSum);
-					this.colourScale2=colourScale2;
-				}
-			}
-
-			//SETUP RENDERER
-			TileRendererPopPyramid.setup(this.g, mouseX, mouseY, attribBinSize, absRel, ctDemog, colourScale, colourScale2);
-
-			//RENDER THEM
-			for (TileRendererPopPyramid tileRenderer:tileRenderers) {
-				boolean drawLabels=false;
-				if (projection==Projection.GridMap)
-					drawLabels=true;
-				String tileTooltip=tileRenderer.drawTile(drawLabels);
-				if (tileTooltip!=null)
-					tooltip=tileTooltip;
-
-			}
-			for (TileRendererPopPyramid tileRenderer:tileRenderers)
-				tileRenderer.drawTileRelativeSymb();
-
-			if (projection==Projection.Area || projection==Projection.GridMap) {
-				for (TileRendererPopPyramid tileRenderer:tileRenderers)
-					tileRenderer.drawOutlines();
-			}
-			
-			if (projection==Projection.Gridded) {
-				//draw grid lines
-				stroke(0,30);
-				for (int x=0;x<numCols;x++) 
-					line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
-				for (int y=0;y<numRows;y++)
-					line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
-			}
-
-		}
-		
-		
-		
-		
-		
-		else if (mode==Mode.ModelAgeDay && !DATAFILE_RESULTS_PATHS.isEmpty() && !datasetNames.isEmpty()) {
-			int currentDatasetIdx=datasetNames.indexOf(datasetName);
-			title="Model results by age-band (younger at top) for day "+currentDay;
-				title+=" for "+datasetName;
-			//GRID THE DATA
-			int[][][][] modelSums=new int[numCols][numRows][10][statuses.length];
-			for (Record record:gridRecords) {
-
-				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
-				PVector pt=zoomPanState.getCoordToDisp(x,y);
-				int xBin=(int)(pt.x/spatialBinSize);
-				int yBin=(int)(pt.y/spatialBinSize);
-				if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows) {
-					for (int j=0;j<10;j++) 
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-//							if (statusShow[statusIdx])
-								modelSums[xBin][yBin][j][statusIdx]+=record.resultCounts[currentDatasetIdx][currentDay][j][statusIdx];
-						}
-				}
-			}
-			//FIND MAX (IF NECESSARY) for glyph
-			Float colourScale=this.colourScale;
-			if (colourScale==null && absRel==AbsRel.Absolute) {
-				colourScale=-Float.MAX_VALUE;
-				for (int x=0;x<numCols;x++) {
-					for (int y=0;y<numRows;y++) {
-						for (int j=0;j<10;j++) {
-							float sum=0;
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-								sum+=modelSums[x][y][j][statusIdx];
-							colourScale=max(colourScale,sum);
-						}
-					}
-				}
-				this.colourScale=colourScale;
-			}
-			//FIND MAX (IF NECESSARY) for transp/symbolsize
-			Float colourScale2=this.colourScale2;
-			if (colourScale2==null && absRel!=AbsRel.Absolute) {
-				//max pop in any square
-				colourScale2=-Float.MAX_VALUE;
-				for (int x=0;x<numCols;x++) {
-					for (int y=0;y<numRows;y++) {
-						float sum=0;
-						for (int j=0;j<10;j++)
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-								sum+=modelSums[x][y][j][statusIdx];
-						colourScale2=max(colourScale2,sum);
-					}
-				}
-				this.colourScale2=colourScale2;
-			}
-			//DRAW
-			for (int x=0;x<numCols;x++) {
-				for (int y=0;y<numRows;y++) {
-					int localSum=0;
-					for (int j=0;j<modelSums[x][y].length;j++)
-						for (int k=0;k<modelSums[x][y][j].length;k++) {
-							localSum+=modelSums[x][y][j][k];
-						}
-					//make background white
-					fill(255);
-					noStroke();
-					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-					float h=(float)spatialBinSize/10f;
-					for (int j=0;j<10;j++) {
-						float xPos=bounds.x+x*spatialBinSize+1;
-						float yPos=bounds.y+y*spatialBinSize+1+j*h;
-						int sum=0;
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
-							sum+=modelSums[x][y][j][statusIdx];
-
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							if (statusShow[statusIdx]) {
-								float w;
-								if (absRel==AbsRel.Absolute)
-									w=constrain(map((float)modelSums[x][y][j][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
-								else
-									w=constrain(map((float)modelSums[x][y][j][statusIdx],0,sum,0,spatialBinSize-2),0,spatialBinSize-2);
-								int transp=255;
-								if (absRel==AbsRel.RelativeFade)
-									transp=(int)constrain(map(localSum,0,colourScale2,0,255),0,255);
-								fill(ctStatus.findColour(statusIdx+1),transp);
-								rect(xPos,yPos,w,h);
-								if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos && mouseY<yPos+h)
-									tooltip=modelSums[x][y][j][statusIdx]+" ("+(int)(modelSums[x][y][j][statusIdx]/(float)sum*100)+"%) people aged "+(j*10)+"-"+((j+1)*10-1)+" are "+statuses[statusIdx];
-								xPos+=w;
-							}
-						}
-					}
-				}
-			}
-			if (absRel==AbsRel.RelativeSymb) {
-				for (int x=0;x<numCols;x++) {
-					for (int y=0;y<numRows;y++) {
-						int localSum=0;
-						for (int j=0;j<modelSums[x][y].length;j++)
-							for (int k=0;k<modelSums[x][y][j].length;k++)
-								localSum+=modelSums[x][y][j][k];
-						noFill();
-						stroke(0,0,200,100);
-						float w=map(localSum,0,colourScale2,0,spatialBinSize);
-						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
-					}
-				}
-			}
-
-			if (projection==Projection.Gridded) {
-				//draw grid lines
-				stroke(0,30);
-				for (int x=0;x<numCols;x++) 
-					line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
-				for (int y=0;y<numRows;y++)
-					line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
-			}
-			
-
-		}
-
-		
-		
-		
-		else if (mode==Mode.ModelTime  && !DATAFILE_RESULTS_PATHS.isEmpty() && !datasetNames.isEmpty()) {
-			int currentDatasetIdx=datasetNames.indexOf(datasetName);
-			title="Model results over time";
-				title+=" for "+datasetName;
-			//GRID THE DATA
-			int[][][][] modelSums=new int[numCols][numRows][numDays][statuses.length];
-			for (Record record:gridRecords) {
-
-				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
-				PVector pt=zoomPanState.getCoordToDisp(x,y);
-				int xBin=(int)(pt.x/spatialBinSize);
-				int yBin=(int)(pt.y/spatialBinSize);
-				if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
-					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-//						if (statusShow[statusIdx])
-							for (int t=0;t<numDays;t++) 
-								for (int j=0;j<10;j++) 
-									modelSums[xBin][yBin][t][statusIdx]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx];
-
 				
+		Collection<Tile> tiles=createTiles();
+		
+		//FIND MAX (IF NECESSARY) for glyph
+		Float colourScale=this.colourScale;
+		if (colourScale==null) {
+			//for RELATIVE, max pop is any one age band
+			colourScale=-Float.MAX_VALUE;
+			for (Tile tile:tiles) 
+				colourScale=max(colourScale,(float)(tile.getMaxForGlyph(absRel)));
+			this.colourScale=colourScale;
+		}
+		//FIND MAX (IF NECESSARY) for transp/symbolsize
+		Float colourScale2=this.colourScale2;
+		if (colourScale2==null && absRel!=AbsRel.Absolute) {
+			//max pop in any square
+			colourScale2=-Float.MAX_VALUE;
+			for (Tile tile:tiles) { 
+				colourScale2=max(colourScale2,tile.getMaxForTransp(absRel));
 			}
-			//FIND MAX (IF NECESSARY)
-			Float colourScale=this.colourScale;
-			if (colourScale==null && absRel==AbsRel.Absolute) {
-					colourScale=-Float.MAX_VALUE;
-					for (int x=0;x<numCols;x++) {
-						for (int y=0;y<numRows;y++) {
-							for (int t=0;t<numDays;t++) { 
-								float sum=0;
-								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-									sum+=modelSums[x][y][t][statusIdx];
-								colourScale=max(colourScale,sum);
-							}
-						}
-					}
-					this.colourScale=colourScale;
-			}
-			//FIND MAX (IF NECESSARY) for transp/symbolsize
-			Float colourScale2=this.colourScale2;
-			if (colourScale2==null && absRel!=AbsRel.Absolute) {
-				//max pop in any square (based on visible status) but summed across all timesteps
-				colourScale2=-Float.MAX_VALUE;
-				for (int x=0;x<numCols;x++) {
-					for (int y=0;y<numRows;y++) {
-						float sum=0;
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-							for (int t=0;t<numDays;t++) 
-								sum+=modelSums[x][y][t][statusIdx];
-						colourScale2=max(colourScale2,sum);
-					}
-				}
-				this.colourScale2=colourScale2;
-			}
-			//DRAW
-			for (int x=0;x<numCols;x++) {
-				for (int y=0;y<numRows;y++) {
-					//make background white
-					fill(255);
-					noStroke();
-					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-					float w=(float)(spatialBinSize-2)/numDays;
-					//calc localsum across t
-					int localSumAcrossT=0;
-					for (int t=0;t<numDays;t++)
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)
-							if (statusShow[statusIdx]) 
-								localSumAcrossT+=modelSums[x][y][t][statusIdx];
-					for (int t=0;t<numDays;t++) {
-						float xPos=bounds.x+x*spatialBinSize+1+t*w;
-						float yPos=bounds.y+y*spatialBinSize+spatialBinSize;
-						//calc localsum across for the t
-						int localSum=0;
-						int pop=0;
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							pop+=modelSums[x][y][t][statusIdx];
-							if (statusShow[statusIdx]) 
-								localSum+=modelSums[x][y][t][statusIdx];
+			this.colourScale2=colourScale2;
+		}
 
-						}
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							if (statusShow[statusIdx]) {
-								float h=0;
-								if (absRel==AbsRel.Absolute)
-									h=constrain(map((float)modelSums[x][y][t][statusIdx],0,colourScale,0,spatialBinSize-2),0,spatialBinSize-2);
-								else
-									h=constrain(map((float)modelSums[x][y][t][statusIdx],0,localSum,0,spatialBinSize-2),0,spatialBinSize-2);
-								int transp=255;
-								if (absRel==AbsRel.RelativeFade)
-									transp=(int)constrain(map(localSumAcrossT,0,colourScale2,0,255),0,255);
-								fill(ctStatus.findColour(statusIdx+1),transp);
-								rect(xPos,yPos,w,-h);
-								if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPos-h && mouseY<=yPos)
-									tooltip=modelSums[x][y][t][statusIdx]+" ("+(int)(modelSums[x][y][t][statusIdx]/(float)pop*100)+"%) people on day "+t+" are "+statuses[statusIdx];
-								yPos-=h;
-							}
-						}
-					}
-				}
-			}
-			if (absRel==AbsRel.RelativeSymb) {
-				for (int x=0;x<numCols;x++) {
-					for (int y=0;y<numRows;y++) {
-						int localSumAcrossT=0;
-						for (int t=0;t<numDays;t++)
-							for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-							localSumAcrossT+=modelSums[x][y][t][statusIdx];
-						noFill();
-						stroke(0,0,200,100);
-						float w=map(localSumAcrossT,0,colourScale2,0,spatialBinSize);
-						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
-					}
-				}
-			}
+		
+		for (Tile tile:tiles) {
+			boolean drawLabels=false;
+			if (projection==Projection.GridMap)
+				drawLabels=true;
+			String tileTooltip=tile.drawTile(this,drawLabels);
+			if (tileTooltip!=null)
+				tooltip=tileTooltip;
+		}
 
+		if (absRel==AbsRel.RelativeSymb && this.colourScale2!=null)
+			for (Tile tile:tiles) 
+				tile.drawTileRelativeSymb(this);
+
+
+		if (projection==Projection.Area || projection==Projection.GridMap) {
+			for (Tile tile:tiles) {
+				tile.drawOutlines(this);
+			}
+		}
+
+		if (projection==Projection.Gridded) {
 			//draw grid lines
 			stroke(0,30);
 			for (int x=0;x<numCols;x++) 
 				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
 			for (int y=0;y<numRows;y++)
 				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
-
-			//draw vertical line for time on each square
-			if (bounds.contains(mouseX,mouseY)) {
-				stroke(0,0,200,50);
-				int tPos=((mouseX-bounds.x)-(int)(((mouseX-bounds.x)/spatialBinSize)*(float)spatialBinSize));
-				for (int x=0;x<numCols;x++) 
-					for (int y=0;y<numRows;y++)
-						line(x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+2,x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+spatialBinSize-4);
-				
-			}
-
 		}
-		
-		
-		
-		else if (mode==Mode.ModelComparisonTime && !DATAFILE_RESULTS_PATHS.isEmpty() && !datasetName.equals(comparisonDatasetName)) {
-			title="Comparison of two model results over time";
-				title+=" for "+datasetName;
-			//GRID THE DATA
-			int currentDatasetIdx=datasetNames.indexOf(datasetName);
-			int currentBaselineDatasetIdx=datasetNames.indexOf(comparisonDatasetName);
-			int[][] popSums=new int[numCols][numRows];
-			int[][][][] modelDifferences=new int[numCols][numRows][numDays][statuses.length];
-			for (Record record:gridRecords) {
 
-				float x=map(record.x,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX(),bounds.x,bounds.x+bounds.width);
-				float y=map(record.y,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY(),bounds.y,bounds.y+bounds.height);
-				PVector pt=zoomPanState.getCoordToDisp(x,y);
-				int xBin=(int)(pt.x/spatialBinSize);
-				int yBin=(int)(pt.y/spatialBinSize);
-				if (xBin>=0 && xBin<numCols && yBin>=0 && yBin<numRows)
-					for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) 
-//						if (statusShow[statusIdx])
-							for (int t=0;t<numDays;t++) 
-								for (int j=0;j<10;j++) { 
-									modelDifferences[xBin][yBin][t][statusIdx]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx]-record.resultCounts[currentBaselineDatasetIdx][t][j][statusIdx];
-									if (t==0)//just the first stepstep so we get the population of one
-										popSums[xBin][yBin]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx];
-								}
 
-				
-			}
+		//draw vertical line for time on each square
+		if ((mode==Mode.ModelComparisonTime || mode==Mode.ModelTime) && bounds.contains(mouseX,mouseY)) {
+			stroke(0,0,200,50);
+			int t=-1;
+			for (Tile tile:tiles)
+				if (mouseX>tile.screenXCentre-tile.screenWH/2 && mouseX<tile.screenXCentre+tile.screenWH/2 && mouseY>tile.screenYCentre-tile.screenWH/2 && mouseY<tile.screenYCentre+tile.screenWH/2) {
+					t=(int)map(mouseX,tile.screenXCentre-tile.screenWH/2,tile.screenXCentre+tile.screenWH/2,0,numDays);
+					break;
+				}
 			
-			//FIND MAX (IF NECESSARY)
-			Float colourScale=this.colourScale;
-			if (colourScale==null) {
-				if (absRel==AbsRel.Absolute) {
-					//use the max abs difference
-					colourScale=-Float.MAX_VALUE;
-					for (int x=0;x<numCols;x++) {
-						for (int y=0;y<numRows;y++) {
-							for (int t=0;t<numDays;t++) { 
-								float sum=0;
-								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-									sum+=abs(modelDifferences[x][y][t][statusIdx]);//use abs
-								colourScale=max(colourScale,sum);
-							}
-						}
-					}
-					this.colourScale=colourScale;
+			if (t>-1)
+				for (Tile tile:tiles) {
+					int x=(int)map(t, 0,numDays, tile.screenXCentre-tile.screenWH/2,tile.screenXCentre+tile.screenWH/2);
+					line(x,tile.screenYCentre-tile.screenWH/2+4,x,tile.screenYCentre+tile.screenWH/2-4);
 				}
-				else {
-					//for RELATIVE, use the max difference/pop
-					colourScale=-Float.MAX_VALUE;
-					for (int x=0;x<numCols;x++) {
-						for (int y=0;y<numRows;y++) {
-							for (int t=0;t<numDays;t++) { 
-								float sum=0;
-								for (int statusIdx=0;statusIdx<statuses.length;statusIdx++)//use all statuses (to get whole population)
-									if (popSums[x][y]>0)
-										sum+=abs((float)modelDifferences[x][y][t][statusIdx]/popSums[x][y]);//use abs and divide by pop
-								colourScale=max(colourScale,sum);
-							}
-						}
-					}
-					this.colourScale=colourScale;
-				}
-			}
-			//FIND MAX (IF NECESSARY) for transp/symbolsize
-			Float colourScale2=this.colourScale2;
-			if (colourScale2==null && absRel!=AbsRel.Absolute) {
-				this.colourScale2=colourScale2;
-				colourScale2=-Float.MAX_VALUE;
-				for (int x=0;x<numCols;x++)
-					for (int y=0;y<numRows;y++)
-						colourScale2=max(colourScale2,popSums[x][y]);
-				this.colourScale2=colourScale2;
-			}
-			//DRAW
-			for (int x=0;x<numCols;x++) {
-				for (int y=0;y<numRows;y++) {
-					//make background white
-					fill(255);
-					noStroke();
-					rect(x*spatialBinSize,y*spatialBinSize,spatialBinSize,spatialBinSize);
-					float w=(float)(spatialBinSize-2)/numDays;
-					for (int t=0;t<numDays;t++) {
-						float xPos=bounds.x+x*spatialBinSize+1+t*w;
-						float yPosPositive=bounds.y+y*spatialBinSize+spatialBinSize/2;
-						float yPosNegative=bounds.y+y*spatialBinSize+spatialBinSize/2;
-						//calc localsum across for the t
-						for (int statusIdx=0;statusIdx<statuses.length;statusIdx++) {
-							if (statusShow[statusIdx]) {
-								float h=0;
-								if (absRel==AbsRel.Absolute)
-									h=map((float)abs(modelDifferences[x][y][t][statusIdx]),0,colourScale,0,spatialBinSize-2);
-								else
-									if (popSums[x][y]>0)
-										h=map(abs((float)modelDifferences[x][y][t][statusIdx]/popSums[x][y]),0,colourScale,0,spatialBinSize-2);
-								if (h>1) {
-									int transp=255;
-									if (absRel==AbsRel.RelativeFade)
-										transp=(int)constrain(map(popSums[x][y],0,colourScale2,0,255),0,255);
-									fill(ctStatus.findColour(statusIdx+1),transp);
-									if (modelDifferences[x][y][t][statusIdx]>0) {
-										rect(xPos,yPosPositive,w,-h);
-										if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosPositive-h && mouseY<yPosPositive)
-											tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) MORE people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
-										yPosPositive-=h;
-									}
-									else {
-										rect(xPos,yPosNegative,w,h);
-										if (mouseX>xPos && mouseX<=xPos+w && mouseY>yPosNegative && mouseY<yPosNegative+h)
-											tooltip=abs(modelDifferences[x][y][t][statusIdx])+" ("+(int)abs((modelDifferences[x][y][t][statusIdx]/(float)popSums[x][y]*100))+"%) FEWER people on day "+t+" are "+statuses[statusIdx]+" in "+datasetName+" than in "+comparisonDatasetName;
-										yPosNegative+=h;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			if (absRel==AbsRel.RelativeSymb) {
-				for (int x=0;x<numCols;x++) {
-					for (int y=0;y<numRows;y++) {
-						noFill();
-						stroke(0,0,200,100);
-						float w=map(popSums[x][y],0,colourScale2,0,spatialBinSize);
-						ellipse(x*spatialBinSize+spatialBinSize/2,y*spatialBinSize+spatialBinSize/2,w,w);
-					}
-				}
-			}
-
-			//draw grid lines
-			stroke(0,30);
-			for (int x=0;x<numCols;x++) 
-				line(x*spatialBinSize,bounds.y,x*spatialBinSize,bounds.y+bounds.height);
-			for (int y=0;y<numRows;y++)
-				line(bounds.x,y*spatialBinSize,bounds.x+bounds.width,y*spatialBinSize);
-			
-			//draw vertical line for time on each square
-			if (bounds.contains(mouseX,mouseY)) {
-				stroke(0,0,200,50);
-				int tPos=((mouseX-bounds.x)-(int)(((mouseX-bounds.x)/spatialBinSize)*(float)spatialBinSize));
-				for (int x=0;x<numCols;x++) 
-					for (int y=0;y<numRows;y++)
-						line(x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+2,x*spatialBinSize+tPos,bounds.y+y*spatialBinSize+spatialBinSize-4);
-				
-			}
-
-
 		}
-		
+
+
+
 		
 		if (helpScreen.getIsActive())
 			helpScreen.draw();
@@ -1138,7 +820,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 
 		//draw legend
 //		if (mode==Mode.ModelBars|| mode==Mode.ModelBarsComparison || mode==Mode.ModelSpine || mode==Mode.ModelSpineComparison || mode==Mode.ModelGraph || mode==Mode.ModelSpineQuintiles|| mode==Mode.ModelSpineTime || mode==Mode.ModelBarsComparisonByStatus || mode==Mode.ModelSpineBoth) {
-		if (!DATAFILE_RESULTS_PATHS.isEmpty() && (mode==Mode.ModelAgeDay||mode==Mode.ModelTime||mode==Mode.ModelComparisonTime)) {
+		if (!DATAFILE_RESULTS_PATHS.isEmpty() && (mode==Mode.ModelAgeDayAnim||mode==Mode.ModelTime||mode==Mode.ModelComparisonTime)) {
 			int y=height-statusBarH-(statuses.length*12);
 			int legendW=0;
 			textAlign(RIGHT,TOP);
@@ -1227,7 +909,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		}
 		
 		//timeline
-		if ((mode==Mode.ModelAgeDay || mode==Mode.ModelTime) && mouseY<50){
+		if ((mode==Mode.ModelAgeDayAnim || mode==Mode.ModelTime) && mouseY<50){
 			noStroke();
 			fill(255,200);
 			rect(0,0,width,50);
@@ -1278,18 +960,19 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		if (projectionTweenStep<=1) {
 			projectionTweenStep+=0.05f;
 		}
+		
 	}
 
 	public void mouseMoved() {
-		redraw();
+		flagToRedraw=true;
 	}
 
 	public void mouseDragged() {
-		redraw();
+		flagToRedraw=true;
 	}
 
 	public void mousePressed() {
-		redraw();
+		flagToRedraw=true;
 	}
 
 	
@@ -1377,19 +1060,19 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		if (key=='h') {
 			helpScreen.setIsActive(!helpScreen.getIsActive());
 		}
-		redraw();
+		flagToRedraw=true;
 	}
 	
 	public void mouseClicked() {
 		mouseClicked=true;
-		redraw();
+		flagToRedraw=true;
 	}
 	
 
 	class Record{
 		int x,y;
-		int[] popCounts; //by demographicgroup
-		int[][][][] resultCounts; //first number is the model result set... followed by time, demographicGroup, infectionType
+		short[] popCounts; //by demographicgroup
+		short[][][][] resultCounts; //first number is the model result set... followed by time, demographicGroup, infectionType
 	}
 
 	class AreaRecord extends Record{
@@ -1399,8 +1082,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent arg0) {
-		redraw();
-		
+		flagToRedraw=true;
 	}
 
 }
