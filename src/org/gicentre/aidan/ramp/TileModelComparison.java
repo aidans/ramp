@@ -90,10 +90,6 @@ public class TileModelComparison extends Tile {
 		demographicGridmap.ellipse(screenXCentre,screenYCentre,w,w);
 	}
 
-	public void drawOutlines(DemographicGridmap demographicGridmap) {
-		// TODO Auto-generated method stub
-
-	}
 
 	public float getMaxForGlyph(AbsRel absRel) {
 		float max=-Float.MAX_VALUE;

@@ -74,20 +74,15 @@ public class TileModelTime extends Tile {
 	}
 
 	public void drawTileRelativeSymb(DemographicGridmap demographicGridmap) {
-				int localSumAcrossT=0;
-				for (int t=0;t<modelSums.length;t++)
-					for (int statusIdx=0;statusIdx<modelSums[t].length;statusIdx++)//use all statuses (to get whole population)
-					localSumAcrossT+=modelSums[t][statusIdx];
-				demographicGridmap.noFill();
-				demographicGridmap.stroke(0,0,200,100);
-				float w=PApplet.map(localSumAcrossT,0,demographicGridmap.colourScale2,0,screenWH);
-				demographicGridmap.ellipse(screenXCentre,screenYCentre,w,w);
+		int localSumAcrossT=0;
+		for (int t=0;t<modelSums.length;t++)
+			for (int statusIdx=0;statusIdx<modelSums[t].length;statusIdx++)//use all statuses (to get whole population)
+				localSumAcrossT+=modelSums[t][statusIdx];
+		demographicGridmap.noFill();
+		demographicGridmap.stroke(0,0,200,100);
+		float w=PApplet.map(localSumAcrossT,0,demographicGridmap.colourScale2,0,screenWH);
+		demographicGridmap.ellipse(screenXCentre,screenYCentre,w,w);
 
-
-	}
-
-	public void drawOutlines(DemographicGridmap demographicGridmap) {
-		// TODO Auto-generated method stub
 
 	}
 

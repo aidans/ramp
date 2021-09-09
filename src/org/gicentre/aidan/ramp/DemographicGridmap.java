@@ -672,11 +672,11 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 				if (mode==Mode.Population)
 					tile=new TilePopulation((int)pt.x,(int)pt.y,gridWH,arrayList,demographicsAttribNames.length,attribBinSize);
 				else if (mode==Mode.ModelAgeDayAnim)
-					tiles.add(new TileModelAgeAnim((int)pt.x,(int)pt.y,gridWH,arrayList,statuses.length,currentDatasetIdx,currentDay));
+					tile=new TileModelAgeAnim((int)pt.x,(int)pt.y,gridWH,arrayList,statuses.length,currentDatasetIdx,currentDay);
 				else if (mode==Mode.ModelTime)
-					tiles.add(new TileModelTime((int)pt.x,(int)pt.y,gridWH,arrayList,numDays,statuses.length,currentDatasetIdx));
+					tile=new TileModelTime((int)pt.x,(int)pt.y,gridWH,arrayList,numDays,statuses.length,currentDatasetIdx);
 				else if (mode==Mode.ModelComparisonTime)
-					tiles.add(new TileModelComparison((int)pt.x,(int)pt.y,gridWH,arrayList,numDays,statuses.length,currentDatasetIdx,currentBaselineDatasetIdx));
+					tile=new TileModelComparison((int)pt.x,(int)pt.y,gridWH,arrayList,numDays,statuses.length,currentDatasetIdx,currentBaselineDatasetIdx);
 				if (tile!=null) {
 					tile.name=record.name;
 					tiles.add(tile);

@@ -22,8 +22,15 @@ public abstract class Tile {
 	
 	public abstract void drawTileRelativeSymb(DemographicGridmap demographicGridmap);
 	
-	public abstract void drawOutlines(DemographicGridmap demographicGridmap);
-	
+	public void drawOutlines(DemographicGridmap demographicGridmap) {
+		demographicGridmap.pushStyle();
+		demographicGridmap.g.strokeWeight=1;
+		demographicGridmap.stroke(100);
+		demographicGridmap.noFill();
+		demographicGridmap.rect(screenXCentre-screenWH/2, screenYCentre-screenWH/2, screenWH, screenWH);
+		demographicGridmap.popStyle();
+	}
+
 	public abstract float getMaxForGlyph(AbsRel absRel);
 	
 	public abstract float getMaxForTransp(AbsRel absRell);

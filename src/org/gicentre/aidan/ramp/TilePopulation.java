@@ -75,15 +75,6 @@ public class TilePopulation extends Tile {
 		}
 	}
 
-	public void drawOutlines(DemographicGridmap demographicGridmap) {
-		demographicGridmap.pushStyle();
-		demographicGridmap.g.strokeWeight=1;
-		demographicGridmap.stroke(100);
-		demographicGridmap.noFill();
-		demographicGridmap.rect(screenXCentre-screenWH/2, screenYCentre-screenWH/2, screenWH, screenWH);
-		demographicGridmap.popStyle();
-	}
-
 	public float getMaxForGlyph(AbsRel absRel) {
 		float max=0;
 		for (int j=0;j<demogSums.length;j++) 
