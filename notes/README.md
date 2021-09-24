@@ -1,5 +1,14 @@
 # Meeting (and non-meeting) notes 
 
+## 24th September 2021 (meeting(
+### Pre-meeting
+As discussed last week, we have suggested that we might move the focus of the visualisation from COVID-19 to more general use cases, particularly on plant biodiversity, as this is in active development at the moment. CH has come up with a list of key changes that we might need to think about when visualising these new systems:
+ - Disease compartments -> Species : there are several key implications of this, including that there are potentially many more species than there are current compartments and that they cannot be easily combined (e.g. like the different age categories we had in disease modelling). Each trajectory is now independent because species don't turn into other species, like a susceptible can become an infected.
+ - We may not want to just look at abundance. Whilst abundances can be very useful, there are lots of different aspects of biodiversity that we might want to consider changing over time. This can span anywhere from very simple measures like abundance and species richness, to more complex beta diversity measures.
+ - Environments now have two components: resources and habitat, which both influence how species survive, reproduce and disperse. Resources are usually things like water and sunlight, whereas habitats are things like climate or land-use type. These are often changing dynamically over time in the models. 
+
+As a first pass at visualising some of these dynamics, I have a small toy model of peatlands, which we dry out over time to see turnover between waterlogged preferring moss species over to those that colonise on drier environments like shrubs and trees. 
+
 ## 27th August 2021 (meeting)
 
 ### Pre-meeting
