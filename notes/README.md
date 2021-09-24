@@ -1,6 +1,6 @@
 # Meeting (and non-meeting) notes 
 
-## 24th September 2021 (meeting(
+## 24th September 2021 (meeting)
 ### Pre-meeting
 As discussed last week, we have suggested that we might move the focus of the visualisation from COVID-19 to more general use cases, particularly on plant biodiversity, as this is in active development at the moment. CH has come up with a list of key changes that we might need to think about when visualising these new systems:
  - Disease compartments -> Species : there are several key implications of this, including that there are potentially many more species than there are current compartments and that they cannot be easily combined (e.g. like the different age categories we had in disease modelling). Each trajectory is now independent because species don't turn into other species, like a susceptible can become an infected.
