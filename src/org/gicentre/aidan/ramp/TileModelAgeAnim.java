@@ -1,9 +1,11 @@
 package org.gicentre.aidan.ramp;
 
+import java.io.File;
 import java.util.Collection;
 
 import org.gicentre.aidan.ramp.DemographicGridmap.AbsRel;
 import org.gicentre.aidan.ramp.DemographicGridmap.Record;
+import org.gicentre.aidan.ramp.xDemographicGridmap.Mode;
 
 import processing.core.PApplet;
 
@@ -24,6 +26,7 @@ public class TileModelAgeAnim extends Tile {
 		}
 
 	}
+	
 	
 	public String drawTile(DemographicGridmap demographicGridmap, boolean showAreaName) {
 		String tooltip=null;

@@ -5,9 +5,7 @@ import org.gicentre.aidan.ramp.DemographicGridmap.AbsRel;
 import processing.core.PApplet;
 
 public abstract class Tile {
-	
-	static String mapTitle;
-	
+		
 	int screenXCentre,screenYCentre, screenWH;
 	String name;
 

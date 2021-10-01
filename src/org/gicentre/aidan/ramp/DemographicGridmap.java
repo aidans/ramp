@@ -734,7 +734,6 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		int numRows=(int)(bounds.getHeight()/spatialBinSize+1);
 		
 		
-		String title="";
 		String tooltip="";
 				
 		Collection<Tile> tiles=createTiles();
@@ -899,7 +898,27 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		textLeading(30);
 		textAlign(LEFT,TOP);
 
-		title+=" ("+mode.toString()+")";
+		String title="";
+		if (mode==Mode.Population)
+			if (absRel==AbsRel.Absolute)
+				title="Population counts by age group (younger at top)";
+			else
+				title="Relative population by age group (younger at top)";
+		if (mode==Mode.ModelAgeDayAnim)
+			if (absRel==AbsRel.Absolute)
+				title="Infection status counts by age group (younger at top) for day "+currentDay+" for "+datasetChanger.getValue();
+			else
+				title="Infection status percentage by age group (younger at top) for day "+currentDay+" for "+datasetChanger.getValue();
+		if (mode==Mode.ModelTime)
+			if (absRel==AbsRel.Absolute)
+				title="Infection status counts over time for "+datasetChanger.getValue();
+			else
+				title="Infection status percentage over time for "+datasetChanger.getValue();
+		if (mode==Mode.ModelComparisonTime)
+			if (absRel==AbsRel.Absolute)
+				title="Absolute difference in the infection status of "+datasetChanger.getValue()+" compared to "+comparisonDatasetChanger.getValue();
+			else
+				title="Percentage difference in the infection status of "+datasetChanger.getValue()+" compared to "+comparisonDatasetChanger.getValue();
 		text(title,0,0,width,height);
 		mouseClicked=false;
 		
