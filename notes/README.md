@@ -1,13 +1,30 @@
 # Meeting (and non-meeting) notes 
 
 ## 24th September 2021 (meeting)
-### Pre-meeting
+
+### Pre-meeting (CH)
+
 As discussed last week, we have suggested that we might move the focus of the visualisation from COVID-19 to more general use cases, particularly on plant biodiversity, as this is in active development at the moment. CH has come up with a list of key changes that we might need to think about when visualising these new systems:
  - Disease compartments -> Species : there are several key implications of this, including that there are potentially many more species than there are current compartments and that they cannot be easily combined (e.g. like the different age categories we had in disease modelling). Each trajectory is now independent because species don't turn into other species, like a susceptible can become an infected.
  - We may not want to just look at abundance. Whilst abundances can be very useful, there are lots of different aspects of biodiversity that we might want to consider changing over time. This can span anywhere from very simple measures like abundance and species richness, to more complex beta diversity measures.
  - Environments now have two components: resources and habitat, which both influence how species survive, reproduce and disperse. Resources are usually things like water and sunlight, whereas habitats are things like climate or land-use type. These are often changing dynamically over time in the models. 
 
 As a first pass at visualising some of these dynamics, I have a small toy model of peatlands, which we dry out over time to see turnover between waterlogged preferring moss species over to those that colonise on drier environments like shrubs and trees. 
+
+### Meeting (AS)
+
+AS said that he wanted to aim to apply for a largish "visual analytis for modelling" funding proposal during his sabbatical (starting now for a year) and that he would be interested to do some preliminary work now to help make the case for this. Details of the proposal, scope, funder and partners to be decided.
+
+AS is keen to work on a module that is under active development (this was not really the case for COVID model). He would like the visual analytics to be integrate to model development. We decided that the peatlands model fits this ideas.
+
+We also talked about how general tools that fit with Glasgow's modelling platform would would be an achievable and generalisable outcome. We discussed tight coupling (i.e. visualisation and model talk to each other) vs loose coupling (software independent from each other that exchange data through an agreed format that is likely to include multiple runs with systematically-varying parameters/inputs).
+
+### Actions
+
+ [ ] CH to provide some initial results.
+ 
+ 
+
 
 ## 27th August 2021 (meeting)
 
