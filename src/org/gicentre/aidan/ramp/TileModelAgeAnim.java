@@ -5,7 +5,6 @@ import java.util.Collection;
 
 import org.gicentre.aidan.ramp.DemographicGridmap.AbsRel;
 import org.gicentre.aidan.ramp.DemographicGridmap.Record;
-import org.gicentre.aidan.ramp.xDemographicGridmap.Mode;
 
 import processing.core.PApplet;
 
