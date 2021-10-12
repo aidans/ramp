@@ -18,8 +18,11 @@ public class TileModelTime extends Tile {
 		for (Record record:records) {
 			for (int statusIdx=0;statusIdx<numCompartments;statusIdx++)
 				for (int t=0;t<numDays;t++) 
-					for (int j=0;j<10;j++) 
+					for (int j=0;j<10;j++) { 
 						modelSums[t][statusIdx]+=record.resultCounts[currentDatasetIdx][t][j][statusIdx];
+			if (modelSums[t][statusIdx]<0)
+				System.out.println(modelSums[t][statusIdx]);
+					}
 		}
 
 	}

@@ -356,7 +356,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 							geoBounds.add(record.x,record.y);
 					}
 					if (record.popCounts==null)
-						record.popCounts=new short[demographicsAttribNames.length];
+						record.popCounts=new int[demographicsAttribNames.length];
 					for (int j=0;j<demographicsAttribNames.length;j++) 
 						record.popCounts[j]+=(short)values[j][i];
 					
@@ -453,7 +453,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 										geoBounds.add(record.x,record.y);
 								}
 								if (record.resultCounts==null)
-									record.resultCounts=new short[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
+									record.resultCounts=new int[DATAFILE_RESULTS_PATHS.size()][numDays][numDemographics][numStatuses];
 
 								for (int dayIdx=0;dayIdx<numDays;dayIdx++) 
 									for (int statusIdx=0;statusIdx<numStatuses;statusIdx++) 
@@ -482,10 +482,10 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 						break;
 					}
 			if (record.resultCounts!=null) {
-				for (short[][][] a1:record.resultCounts)
-					for (short[][] a2:a1)
-						for (short[] a3:a2)
-							for (short v:a3)
+				for (int[][][] a1:record.resultCounts)
+					for (int[][] a2:a1)
+						for (int[] a3:a2)
+							for (int v:a3)
 								if (v>0) {
 									delete=false;
 									break;
@@ -536,9 +536,9 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 						areaRecord.x=(int)boundaries.get(areaKey).getBounds().getCenterX();
 						areaRecord.y=(int)boundaries.get(areaKey).getBounds().getCenterY();
 						if (gridRecord.popCounts!=null) 
-							areaRecord.popCounts=new short[gridRecord.popCounts.length];
+							areaRecord.popCounts=new int[gridRecord.popCounts.length];
 						if (gridRecord.resultCounts!=null) 
-							areaRecord.resultCounts=new short[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
+							areaRecord.resultCounts=new int[gridRecord.resultCounts.length][gridRecord.resultCounts[0].length][gridRecord.resultCounts[0][0].length][gridRecord.resultCounts[0][0][0].length];
 						areaKey2Record.put(areaKey, areaRecord);
 						areaRecord.name=areaKey;
 						areaRecords.add(areaRecord);
@@ -1090,8 +1090,8 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 
 	class Record{
 		int x,y;
-		short[] popCounts; //by demographicgroup
-		short[][][][] resultCounts; //first number is the model result set... followed by time, demographicGroup, infectionType
+		int[] popCounts; //by demographicgroup
+		int[][][][] resultCounts; //first number is the model result set... followed by time, demographicGroup, infectionType
 	}
 
 	class AreaRecord extends Record{
