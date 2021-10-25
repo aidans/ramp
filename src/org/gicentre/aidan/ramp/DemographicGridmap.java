@@ -46,7 +46,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	 */
 	private static final long serialVersionUID = 1L;
 
-	static String APP_NAME="DemographicGridmap, v1.9 (27/08/21)";
+	static String APP_NAME="DemographicGridmap, v1.10 (12/10/21)";
 
 	static String DATAFILE_DEMOGRAPHICS_PATH;
 	static ArrayList<String> DATAFILE_RESULTS_PATHS;
