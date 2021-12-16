@@ -358,7 +358,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 					if (record.popCounts==null)
 						record.popCounts=new int[demographicsAttribNames.length];
 					for (int j=0;j<demographicsAttribNames.length;j++) 
-						record.popCounts[j]+=(short)values[j][i];
+						record.popCounts[j]+=values[j][i];
 					
 				}
 			}
@@ -575,7 +575,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	}
 
 	
-	private Collection<Tile> createTiles(){
+	private Collection<RampTile> createTiles(){
 		final Mode mode=modeChanger.getValueEnum();
 		final Projection projection=projectionChanger.getValueEnum();
 		final Projection prevProjection=projectionChanger.getPreviousValueEnum();
@@ -601,7 +601,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 			geoBoundsInView=new Rectangle((int)geoXLeft,(int)geoYTop,(int)geoXRight-(int)geoXLeft,(int)geoYBottom-(int)geoYTop);
 		}
 
-		HashSet<Tile> tiles=new HashSet<Tile>();
+		HashSet<RampTile> tiles=new HashSet<RampTile>();
 		
 		if (projection==Projection.Gridded) {
 			HashSet[][] griddedRecords=new HashSet[numCols][numRows];
@@ -668,7 +668,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 				}
 				ArrayList<Record> arrayList=new ArrayList<DemographicGridmap.Record>();
 				arrayList.add(record);
-				Tile tile=null;
+				RampTile tile=null;
 				if (mode==Mode.Population)
 					tile=new TilePopulation((int)pt.x,(int)pt.y,gridWH,arrayList,demographicsAttribNames.length,attribBinSize);
 				else if (mode==Mode.ModelAgeDayAnim)
@@ -736,14 +736,14 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		
 		String tooltip="";
 				
-		Collection<Tile> tiles=createTiles();
+		Collection<RampTile> tiles=createTiles();
 		
 		//FIND MAX (IF NECESSARY) for glyph
 		Float colourScale=this.colourScale;
 		if (colourScale==null) {
 			//for RELATIVE, max pop is any one age band
 			colourScale=-Float.MAX_VALUE;
-			for (Tile tile:tiles) 
+			for (RampTile tile:tiles) 
 				colourScale=max(colourScale,(float)(tile.getMaxForGlyph(absRel)));
 			this.colourScale=colourScale;
 		}
@@ -752,14 +752,14 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		if (colourScale2==null && absRel!=AbsRel.Absolute) {
 			//max pop in any square
 			colourScale2=-Float.MAX_VALUE;
-			for (Tile tile:tiles) { 
+			for (RampTile tile:tiles) { 
 				colourScale2=max(colourScale2,tile.getMaxForTransp(absRel));
 			}
 			this.colourScale2=colourScale2;
 		}
 
 		
-		for (Tile tile:tiles) {
+		for (RampTile tile:tiles) {
 			boolean drawLabels=false;
 			if (projection==Projection.GridMap)
 				drawLabels=true;
@@ -769,12 +769,12 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		}
 
 		if (absRel==AbsRel.RelativeSymb && this.colourScale2!=null)
-			for (Tile tile:tiles) 
+			for (RampTile tile:tiles) 
 				tile.drawTileRelativeSymb(this);
 
 
 		if (projection==Projection.Area || projection==Projection.GridMap) {
-			for (Tile tile:tiles) {
+			for (RampTile tile:tiles) {
 				tile.drawOutlines(this);
 			}
 		}
@@ -793,14 +793,14 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		if ((mode==Mode.ModelComparisonTime || mode==Mode.ModelTime) && bounds.contains(mouseX,mouseY)) {
 			stroke(0,0,200,50);
 			int t=-1;
-			for (Tile tile:tiles)
+			for (RampTile tile:tiles)
 				if (mouseX>tile.screenXCentre-tile.screenWH/2 && mouseX<tile.screenXCentre+tile.screenWH/2 && mouseY>tile.screenYCentre-tile.screenWH/2 && mouseY<tile.screenYCentre+tile.screenWH/2) {
 					t=(int)map(mouseX,tile.screenXCentre-tile.screenWH/2,tile.screenXCentre+tile.screenWH/2,0,numDays);
 					break;
 				}
 			
 			if (t>-1)
-				for (Tile tile:tiles) {
+				for (RampTile tile:tiles) {
 					int x=(int)map(t, 0,numDays, tile.screenXCentre-tile.screenWH/2,tile.screenXCentre+tile.screenWH/2);
 					line(x,tile.screenYCentre-tile.screenWH/2+4,x,tile.screenYCentre+tile.screenWH/2-4);
 				}

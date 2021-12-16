@@ -7,7 +7,7 @@ import org.gicentre.aidan.ramp.DemographicGridmap.Record;
 
 import processing.core.PApplet;
 
-public class TileModelComparison extends Tile {
+public class TileModelComparison extends RampTile {
 
 	int[][] modelDifferences;
 	int popSums;

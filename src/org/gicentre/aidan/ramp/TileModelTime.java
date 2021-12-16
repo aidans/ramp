@@ -7,7 +7,7 @@ import org.gicentre.aidan.ramp.DemographicGridmap.Record;
 
 import processing.core.PApplet;
 
-public class TileModelTime extends Tile {
+public class TileModelTime extends RampTile {
 
 	int[][] modelSums;
 	

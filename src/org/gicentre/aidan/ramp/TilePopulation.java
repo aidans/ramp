@@ -12,7 +12,7 @@ import processing.core.PGraphics;
 
 import org.gicentre.aidan.ramp.DemographicGridmap.Record;
 
-public class TilePopulation extends Tile {
+public class TilePopulation extends RampTile {
 
 	static String mapTitle="Population of residents by age group (younger at top)";
 	static ColourTable ctDemog=ColourTable.getPresetColourTable(ColourTable.PURPLES);

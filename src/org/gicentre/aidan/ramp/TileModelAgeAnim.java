@@ -8,7 +8,7 @@ import org.gicentre.aidan.ramp.DemographicGridmap.Record;
 
 import processing.core.PApplet;
 
-public class TileModelAgeAnim extends Tile {
+public class TileModelAgeAnim extends RampTile {
 
 	int[][] modelSums;
 	
@@ -37,7 +37,7 @@ public class TileModelAgeAnim extends Tile {
 		//make background white
 		demographicGridmap.fill(255);
 		demographicGridmap.noStroke();
-		demographicGridmap.rect(screenXCentre*screenWH-screenWH/2,screenYCentre*screenWH-screenWH/2,screenWH,screenWH);
+		demographicGridmap.rect(screenXCentre-screenWH/2,screenYCentre-screenWH/2,screenWH,screenWH);
 		float h=(float)screenWH/10f;
 		for (int j=0;j<10;j++) {
 			float xPos=screenXCentre-screenWH/2+1;
