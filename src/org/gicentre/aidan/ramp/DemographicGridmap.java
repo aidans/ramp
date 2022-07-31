@@ -63,6 +63,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 	String[] statuses;
 	boolean[] statusShow;
 	private int numDays;
+	boolean showBoundaries=true;
 	
 	ColourTable ctDemog,ctResult,ctStatus,ctForce,ctReservoir;
 
@@ -268,7 +269,6 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		
 		
 		//load os tile lookups
-		
 		try {
 			tile2coordprefix=new HashMap<String, String>();
 			BufferedReader br = new BufferedReader(new FileReader("data/tile_osgb.txt"));
@@ -857,7 +857,7 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 
 		
 		//draw boundaries
-		if (projection!=Projection.GridMap) {
+		if (showBoundaries && projection!=Projection.GridMap) {
 			PVector ptMouse=zoomPanState.getDispToCoord(new PVector(mouseX,mouseY));
 			float geoMouseX=map(ptMouse.x,bounds.x,bounds.x+bounds.width,(float)geoBounds.getMinX(),(float)geoBounds.getMaxX());
 			float geoMouseY=map(ptMouse.y,bounds.y,bounds.y+bounds.height,(float)geoBounds.getMaxY(),(float)geoBounds.getMinY());
@@ -1079,6 +1079,8 @@ public class DemographicGridmap extends PApplet implements MouseWheelListener{
 		if (key=='h') {
 			helpScreen.setIsActive(!helpScreen.getIsActive());
 		}
+		if (key=='b')
+			showBoundaries=!showBoundaries;
 		flagToRedraw=true;
 	}
 	
