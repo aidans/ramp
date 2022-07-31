@@ -1,6 +1,6 @@
 # Interactive visualisation that uses of Glyphmaps for population and COVID modelling
 
-[This information is also] here(http://www.staff.city.ac.uk/~sbbb717/">http://www.staff.city.ac.uk/~sbbb717/)
+[This information is also here](http://www.staff.city.ac.uk/~sbbb717/">http://www.staff.city.ac.uk/~sbbb717/).
 
 This is joint work a [Claire Harris](https://www.bioss.ac.uk/people/claire.html") of [BIOSS](http://bioss.ac.uk) and [Richard Reeve](https://www.gla.ac.uk/researchinstitutes/bahcm/staff/richardreeve/) of [Glasgow University](https://www.gla.ac.uk/"). It was carried out as part of the [RAMPVIS](https://sites.google.com/view/rampvis/) - outputs of which are [published here](https://openaccess.city.ac.uk/id/eprint/28123/) (including outputs of this work) -  funded by EPSRC, involving most UK visualisation academics in a project coordinated by [Min Chen](https://eng.ox.ac.uk/people/min-chen/)</a> at [Oxford University](https://www.ox.ac.uk/)
 
